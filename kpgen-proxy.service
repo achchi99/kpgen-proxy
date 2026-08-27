@@ -1,0 +1,23 @@
+[Unit]
+Description=kpgen VPS proxy (FastAPI + Anthropic)
+After=network.target
+
+[Service]
+Type=simple
+User=kpgen-proxy
+Group=kpgen-proxy
+WorkingDirectory=/opt/kpgen-proxy
+Environment=KPGEN_SECRETS_FILE=/etc/kpgen-secrets.env
+ExecStart=/opt/kpgen-proxy/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=5
+
+# Bir oz himoya — proxy faqat o'z papkasi va secrets faylini o'qishga muhtoj
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadOnlyPaths=/opt/kpgen-proxy
+ReadOnlyPaths=/etc/kpgen-secrets.env
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
