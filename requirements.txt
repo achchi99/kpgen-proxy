@@ -2,3 +2,6 @@ fastapi
 uvicorn[standard]
 anthropic
 pydantic
+Pillow
+httpx
+pytest

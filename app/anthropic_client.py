@@ -3,7 +3,7 @@ server hech qachon qulamaydi (chaqiruvchi tomon HTTP xato qaytaradi)."""
 
 import anthropic
 
-from app.config import MODEL_NAME, get_api_key
+from app.config import MODEL_NAME, VISION_MODEL_NAME, get_api_key
 
 
 class ProxyError(Exception):
@@ -14,9 +14,9 @@ class ProxyError(Exception):
         self.status_code = status_code
 
 
-def ask_claude(prompt: str, *, max_tokens: int = 100) -> str:
-    """`prompt`ni Anthropic API'ga (MODEL_NAME) yuboradi, matn javobini
-    qaytaradi.
+def _call_anthropic(*, model: str, messages: list[dict], max_tokens: int) -> str:
+    """Anthropic'ga chaqiruv — matn ham, vision ham shu orqali o'tadi,
+    xato-turlari bir xil tarzda ProxyError'ga aylantiriladi (DRY).
 
     Raises:
         ProxyError: kalit yo'q/noto'g'ri, tarmoq xatosi, yoki Anthropic
@@ -32,11 +32,7 @@ def ask_claude(prompt: str, *, max_tokens: int = 100) -> str:
     client = anthropic.Anthropic(api_key=api_key)
 
     try:
-        response = client.messages.create(
-            model=MODEL_NAME,
-            max_tokens=max_tokens,
-            messages=[{"role": "user", "content": prompt}],
-        )
+        response = client.messages.create(model=model, max_tokens=max_tokens, messages=messages)
     except anthropic.AuthenticationError as exc:
         raise ProxyError("Anthropic API kalit noto'g'ri yoki muddati o'tgan", status_code=500) from exc
     except anthropic.RateLimitError as exc:
@@ -52,3 +48,51 @@ def ask_claude(prompt: str, *, max_tokens: int = 100) -> str:
         raise ProxyError("Anthropic API bo'sh javob qaytardi", status_code=502)
 
     return response.content[0].text.strip()
+
+
+def ask_claude(prompt: str, *, max_tokens: int = 100) -> str:
+    """`prompt`ni Anthropic API'ga (MODEL_NAME, matn) yuboradi, javobni qaytaradi."""
+    return _call_anthropic(
+        model=MODEL_NAME,
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=max_tokens,
+    )
+
+
+_VISION_PROMPT = (
+    "Bu rasmda bitta katak bor — texnik jadvaldagi 'Кол-во' (miqdor) "
+    "katagi, CAD chizmasidan olingan (vektor shrift, OCR emas). "
+    "Kontekst: {context}\n\n"
+    "Faqat katakdagi RAQAMNING O'ZINI qaytar (masalan \"39\" yoki \"6.3\"), "
+    "boshqa hech qanday so'z, birlik yoki izoh yozma. "
+    "Agar raqamni aniq va ishonchli o'qiy olmasang — faqat bitta so'z: null"
+)
+
+
+def ask_claude_vision(image_base64: str, context: str, *, max_tokens: int = 20) -> str:
+    """Rasmni (base64, PNG) Anthropic vision API'ga (VISION_MODEL_NAME)
+    yuboradi, model javobini (xom matn — "39" yoki "null") qaytaradi.
+
+    Javobni RAQAM/`null` ekanligini tekshirish — bu funksiya EMAS,
+    chaqiruvchi (`main.py`) vazifasi (server-tomon qat'iy validatsiya).
+    """
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": "image/png",
+                        "data": image_base64,
+                    },
+                },
+                {
+                    "type": "text",
+                    "text": _VISION_PROMPT.format(context=context),
+                },
+            ],
+        }
+    ]
+    return _call_anthropic(model=VISION_MODEL_NAME, messages=messages, max_tokens=max_tokens)

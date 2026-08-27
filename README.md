@@ -23,6 +23,24 @@ curl -X POST http://127.0.0.1:8000/classify \
      -d '{"text": "Дроссель-клапан 300x200"}'
 ```
 
+`/vision` — CAD chizmasidagi vektor/qo'lyozma raqamni o'qiydi (kesilgan
+katak-rasm, base64):
+
+```bash
+curl -X POST http://127.0.0.1:8000/vision \
+     -H "Content-Type: application/json" \
+     -d "{\"image_base64\": \"$(base64 -w0 cell.png)\", \"context\": \"Кол-во, 500x150\"}"
+```
+
+## Testlar
+
+```bash
+pytest tests/ -v
+```
+
+Testlar HAQIQIY tarmoqqa chiqmaydi (`ask_claude`/`ask_claude_vision`
+mock qilinadi) — API kalit talab qilinmaydi, xarajatsiz.
+
 ## Serverga o'rnatish (systemd)
 
 1. Loyihani `/opt/kpgen-proxy`ga nusxalang, venv yarating, `pip install -r requirements.txt`.

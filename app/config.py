@@ -8,7 +8,11 @@ import os
 from pathlib import Path
 
 SECRETS_FILE = Path(os.environ.get("KPGEN_SECRETS_FILE", "/etc/kpgen-secrets.env"))
-MODEL_NAME = "claude-haiku-4-5"
+MODEL_NAME = "claude-haiku-4-5"  # matn-klassifikatsiya (/classify)
+# Vision (/vision) — CAD chizmasidagi vektor/qo'lyozma raqamlarni o'qish
+# aniqroq model talab qiladi, shuning uchun alohida va environment
+# orqali sozlanadigan (kodga qotirilmagan).
+VISION_MODEL_NAME = os.environ.get("KPGEN_VISION_MODEL", "claude-sonnet-5")
 
 
 def _load_secrets_file(path: Path) -> None:
