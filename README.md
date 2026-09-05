@@ -58,3 +58,32 @@ mock qilinadi) — API kalit talab qilinmaydi, xarajatsiz.
 Server qayta ishga tushsa, `enable` tufayli proxy o'zi qayta ko'tariladi.
 Ishlab chiqarishda `127.0.0.1:8000` oldiga nginx/reverse-proxy (TLS
 bilan) qo'yish tavsiya etiladi — bu fayl buni o'z ichiga olmaydi.
+
+## Monitoring (Telegram xabarnoma)
+
+`/health` faqat jarayon tirikligini bildiradi — Anthropic bilan real
+bog'lanishni EMAS (2026-09-05: proxy 3 kun ishlamay turgan, health esa
+200 qaytargani uchun sezilmagan). `monitor/` papkasi buni tuzatadi:
+har 30 daqiqada `/classify`ga haqiqiy so'rov yuboradi (bu `/vision`
+bilan bir xil `_call_anthropic()` orqali o'tadi, shuning uchun arzon
+matn-so'rov bilan ham real Anthropic-ulanish tekshiriladi). Ketma-ket
+xatoda faqat birinchi aniqlanganda va keyin har 3 soatda bitta xabar
+(spam emas), tuzalganda bitta "tuzaldi" xabari.
+
+O'rnatish:
+
+1. `monitor/check_proxy.py` → `/opt/kpgen-proxy-monitor/check_proxy.py`
+2. `monitor/kpgen-proxy-monitor.service` va `.timer` →
+   `/etc/systemd/system/`
+3. `monitor/kpgen-monitor-secrets.env.example` namunasi bo'yicha
+   `/etc/kpgen-monitor-secrets.env` yarating (`chmod 600 root:root`),
+   `TELEGRAM_BOT_TOKEN` va `TELEGRAM_CHAT_ID` bilan
+4.
+   ```bash
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now kpgen-proxy-monitor.timer
+   sudo systemctl list-timers kpgen-proxy-monitor.timer
+   ```
+
+Qo'lda sinash: `sudo systemctl start kpgen-proxy-monitor.service` (natija
+`journalctl -u kpgen-proxy-monitor.service -n 20`da ko'rinadi).

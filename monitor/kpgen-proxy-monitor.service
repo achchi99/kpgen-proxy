@@ -1,0 +1,9 @@
+[Unit]
+Description=kpgen-proxy monitoring (haqiqiy Anthropic ulanishini tekshiradi)
+After=network-online.target kpgen-proxy.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/kpgen-monitor-secrets.env
+ExecStart=/usr/bin/python3 /opt/kpgen-proxy-monitor/check_proxy.py
