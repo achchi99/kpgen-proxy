@@ -76,6 +76,12 @@ class DwgSpecPosition(BaseModel):
 
 class DwgSpecResponse(BaseModel):
     positions: list[DwgSpecPosition]
+    # VAQTINCHALIK diagnostika maydoni (Faza-45-topshiriq §B, Мимар
+    # sinovi #3-bosqich): model nega bo'sh `positions` qaytarganini
+    # (JSON/schema xatomi, yoki model haqiqatan hech narsa topmadimi)
+    # ko'rish uchun — `positions` bo'sh bo'lganda xom javobning boshi
+    # qo'shiladi. Muammo topilgach OLIB TASHLANADI.
+    raw_preview: str | None = None
 
 
 _CLASSIFY_PROMPT = (
@@ -147,6 +153,8 @@ def dwg_spec(payload: DwgSpecRequest):
         parsed = DwgSpecResponse.model_validate(data)
     except (json.JSONDecodeError, ValidationError) as exc:
         _log.warning("dwg_spec: model javobi JSON/schema xato: %s", exc)
-        return DwgSpecResponse(positions=[])
+        return DwgSpecResponse(positions=[], raw_preview=raw[:2000])
 
+    if not parsed.positions:
+        parsed.raw_preview = raw[:2000]
     return parsed

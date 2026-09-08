@@ -45,7 +45,7 @@ def test_dwg_spec_bosh_natija():
         resp = client.post("/dwg_spec", json={"elements": _ELEMENTS})
 
     assert resp.status_code == 200
-    assert resp.json() == {"positions": []}
+    assert resp.json()["positions"] == []
 
 
 def test_dwg_spec_buzuq_json_bosh_royxat_qaytaradi():
@@ -56,7 +56,7 @@ def test_dwg_spec_buzuq_json_bosh_royxat_qaytaradi():
         resp = client.post("/dwg_spec", json={"elements": _ELEMENTS})
 
     assert resp.status_code == 200
-    assert resp.json() == {"positions": []}
+    assert resp.json()["positions"] == []
 
 
 def test_dwg_spec_schema_mos_kelmasa_bosh_royxat():
@@ -68,7 +68,18 @@ def test_dwg_spec_schema_mos_kelmasa_bosh_royxat():
         resp = client.post("/dwg_spec", json={"elements": _ELEMENTS})
 
     assert resp.status_code == 200
-    assert resp.json() == {"positions": []}
+    assert resp.json()["positions"] == []
+
+
+def test_dwg_spec_bosh_natijada_raw_preview_diagnostika_uchun_qoshiladi():
+    """VAQTINCHALIK diagnostika (Faza-45-topshiriq §B, Мимар sinovi):
+    `positions` bo'sh bo'lganda `raw_preview` modelning xom javobini
+    ko'rsatishi shart — aks holda "model hech narsa topmadi" bilan
+    "JSON buzilgan edi" farqlanmaydi."""
+    with patch("app.main.ask_claude_dwg_spec", return_value="Kechirasiz, men bu jadvalni topa olmadim."):
+        resp = client.post("/dwg_spec", json={"elements": _ELEMENTS})
+
+    assert resp.json()["raw_preview"] == "Kechirasiz, men bu jadvalni topa olmadim."
 
 
 def test_dwg_spec_kol_null_qabul_qilinadi():
