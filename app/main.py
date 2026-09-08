@@ -175,10 +175,12 @@ def dwg_spec(payload: DwgSpecRequest):
     mosligini CHUQUR tekshirish kpgen tomonida (`ai/dwg_ai.py`),
     chunki faqat u ASL SvodRow modeliga yozish huquqiga ega."""
     elements_tsv = "\n".join(f"{e.text}\t{e.x:.1f}\t{e.y:.1f}\t{e.layer}" for e in payload.elements)
+    _log.info("dwg_spec: %d element qabul qilindi", len(payload.elements))
 
     try:
         raw = ask_claude_dwg_spec(elements_tsv)
     except ProxyError as exc:
+        _log.warning("dwg_spec: Anthropic chaqiruvi muvaffaqiyatsiz: %s", exc)
         return JSONResponse(status_code=exc.status_code, content={"error": str(exc)})
 
     try:
@@ -188,4 +190,5 @@ def dwg_spec(payload: DwgSpecRequest):
         _log.warning("dwg_spec: model javobi JSON/schema xato: %s", exc)
         return DwgSpecResponse(positions=[])
 
+    _log.info("dwg_spec: %d pozitsiya qaytarilmoqda", len(parsed.positions))
     return parsed
