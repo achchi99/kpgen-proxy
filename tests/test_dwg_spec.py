@@ -71,15 +71,39 @@ def test_dwg_spec_schema_mos_kelmasa_bosh_royxat():
     assert resp.json()["positions"] == []
 
 
-def test_dwg_spec_bosh_natijada_raw_preview_diagnostika_uchun_qoshiladi():
-    """VAQTINCHALIK diagnostika (Faza-45-topshiriq §B, Мимар sinovi):
-    `positions` bo'sh bo'lganda `raw_preview` modelning xom javobini
-    ko'rsatishi shart — aks holda "model hech narsa topmadi" bilan
-    "JSON buzilgan edi" farqlanmaydi."""
-    with patch("app.main.ask_claude_dwg_spec", return_value="Kechirasiz, men bu jadvalni topa olmadim."):
+def test_dwg_spec_markdown_kod_blokidagi_json_togri_oqiladi():
+    """Haqiqiy topilgan xato (Мимар sinovi, 2026-09-08, bug #3): model
+    promptdagi "faqat JSON" talabiga qaramay, javobni tabiiy-til izohi
+    va ```json ... ``` kod bloki bilan o'radi. Bu ANIQLANGANDA (model
+    ICHKI JSON'i to'g'ri edi) endi to'g'ri parse qilinishi shart."""
+    model_javobi = (
+        "Tahlil natijasida quyidagi pozitsiyalarni topdim.\n\n"
+        "```json\n"
+        '{"positions": [{"naim": "Конвектор электрический", "ed": "шт", '
+        '"kol": 2, "manba_matnlar": ["КЭ1", "Конвектор электрический", "шт", "2"]}]}\n'
+        "```"
+    )
+    with patch("app.main.ask_claude_dwg_spec", return_value=model_javobi):
         resp = client.post("/dwg_spec", json={"elements": _ELEMENTS})
 
-    assert resp.json()["raw_preview"] == "Kechirasiz, men bu jadvalni topa olmadim."
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body["positions"]) == 1
+    assert body["positions"][0]["naim"] == "Конвектор электрический"
+
+
+def test_dwg_spec_izohsiz_json_ham_togri_oqiladi():
+    """Kod bloki YO'Q, faqat oldida/orqasida erkin matn bo'lsa ham —
+    birinchi `{`dan oxirgi `}`gacha bo'lgan qism ajratib olinadi."""
+    model_javobi = (
+        'Mana natija: {"positions": [{"naim": "X", "ed": "шт", "kol": 1, '
+        '"manba_matnlar": ["X", "шт", "1"]}]} — tayyor.'
+    )
+    with patch("app.main.ask_claude_dwg_spec", return_value=model_javobi):
+        resp = client.post("/dwg_spec", json={"elements": _ELEMENTS})
+
+    assert resp.status_code == 200
+    assert len(resp.json()["positions"]) == 1
 
 
 def test_dwg_spec_kol_null_qabul_qilinadi():

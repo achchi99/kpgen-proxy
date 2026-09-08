@@ -160,7 +160,7 @@ QOIDALAR:
 - "manba_matnlar"dagi har bir satr ro'yxatda AYNAN shunday (harfma-harf) bo'lishi SHART.
 - Spetsifikatsiyaga aloqasi yo'q matnlarni (sarlavha, shtamp, o'lchamlar, umumiy izohlar) e'tiborsiz qoldir.
 
-Faqat quyidagi JSON formatida javob ber, boshqa hech qanday matn yozma:
+Javobing FAQAT xom JSON bo'lsin — kirish so'zisiz, izohsiz, tushuntirishsiz, markdown kod blokisiz (```json yozma). Birinchi belgi javobingda darhol "{{" bo'lishi shart:
 {{"positions": [{{"naim": "...", "ed": "...", "kol": 2, "manba_matnlar": ["...", "..."]}}, ...]}}
 
 Agar hech qanday spetsifikatsiya jadvali topilmasa: {{"positions": []}}

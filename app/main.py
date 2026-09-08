@@ -24,6 +24,39 @@ app = FastAPI(title="kpgen-proxy")
 
 _NUMBER_RE = re.compile(r"^\d+([.,]\d+)?$")
 
+# Faza-45-topshiriq §B (haqiqiy xato #3, Мимар sinovi, 2026-09-08):
+# promptda "faqat JSON, boshqa hech qanday matn yozma" deb qat'iy
+# talab qilingan bo'lsa ham, model ba'zan JSON'ni tabiiy-til izohi va/
+# yoki markdown ```json...``` kod bloki bilan o'rab qaytaradi — bunda
+# `json.loads()` xom matnni to'g'ridan-to'g'ri qabul qila olmaydi.
+# Bu — model "yolg'on" gapiryapti degani EMAS (Мимар sinovida model
+# ICHKI JSON'i 100% to'g'ri edi, faqat qatlamlash muammosi bor edi) —
+# shuning uchun buni "xato" deb rad etishdan ko'ra, JSON qismini xavfsiz
+# ajratib olish to'g'riroq. Bu ajratib olingandan KEYIN ham xuddi
+# avvalgidek qat'iy schema-tekshiruv (`DwgSpecResponse.model_validate`)
+# ishlaydi — bu funksiya faqat qaysi qism JSON ekanini topadi, mazmunini
+# tekshirmaydi.
+_JSON_FENCE_RE = re.compile(r"```(?:json)?\s*(\{.*\})\s*```", re.DOTALL)
+
+
+def _extract_json_object(raw: str) -> str:
+    """Model javobidan JSON obyektini ajratib oladi — kod blokidagi,
+    yoki matn ichidagi birinchi `{`dan oxirgi `}`gacha bo'lgan qismni.
+    Hech narsa topilmasa xom matnni o'zgarishsiz qaytaradi (chaqiruvchi
+    `json.loads()` baribir xato beradi va tushunarli qayta ishlanadi)."""
+    stripped = raw.strip()
+
+    fence_match = _JSON_FENCE_RE.search(stripped)
+    if fence_match:
+        return fence_match.group(1)
+
+    first_brace = stripped.find("{")
+    last_brace = stripped.rfind("}")
+    if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+        return stripped[first_brace : last_brace + 1]
+
+    return stripped
+
 
 @app.exception_handler(Exception)
 def handle_unexpected_error(request: Request, exc: Exception) -> JSONResponse:
@@ -76,12 +109,6 @@ class DwgSpecPosition(BaseModel):
 
 class DwgSpecResponse(BaseModel):
     positions: list[DwgSpecPosition]
-    # VAQTINCHALIK diagnostika maydoni (Faza-45-topshiriq §B, Мимар
-    # sinovi #3-bosqich): model nega bo'sh `positions` qaytarganini
-    # (JSON/schema xatomi, yoki model haqiqatan hech narsa topmadimi)
-    # ko'rish uchun — `positions` bo'sh bo'lganda xom javobning boshi
-    # qo'shiladi. Muammo topilgach OLIB TASHLANADI.
-    raw_preview: str | None = None
 
 
 _CLASSIFY_PROMPT = (
@@ -149,12 +176,10 @@ def dwg_spec(payload: DwgSpecRequest):
         return JSONResponse(status_code=exc.status_code, content={"error": str(exc)})
 
     try:
-        data = json.loads(raw)
+        data = json.loads(_extract_json_object(raw))
         parsed = DwgSpecResponse.model_validate(data)
     except (json.JSONDecodeError, ValidationError) as exc:
         _log.warning("dwg_spec: model javobi JSON/schema xato: %s", exc)
-        return DwgSpecResponse(positions=[], raw_preview=raw[:2000])
+        return DwgSpecResponse(positions=[])
 
-    if not parsed.positions:
-        parsed.raw_preview = raw[:2000]
     return parsed
