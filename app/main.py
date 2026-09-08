@@ -105,6 +105,12 @@ class DwgSpecPosition(BaseModel):
     ed: str = ""
     kol: float | None = None
     manba_matnlar: list[str] = Field(min_length=1)
+    # Faza-45-topshiriq §B (haqiqiy xato #5, mijoz, 2026-09-08): "Поз."
+    # ustunidagi pozitsiya belgisi (masalan "КЭ1", "В1") — kpgen tomonida
+    # (`ai/dwg_ai.py`) qator chegarasini (band) aniqlash uchun ishlatiladi.
+    # Yo'q/aniqlanmasa — null (bu pozitsiya keyin band-tekshiruvsiz rad
+    # etiladi, "o'ylab topilgan" raqam bilan xato yasashdan ko'ra).
+    belgi: str | None = None
 
 
 class DwgSpecResponse(BaseModel):

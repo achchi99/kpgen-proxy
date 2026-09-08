@@ -38,6 +38,29 @@ def test_dwg_spec_toza_javob():
     assert len(body["positions"]) == 1
     assert body["positions"][0]["kol"] == 2
     assert body["positions"][0]["manba_matnlar"] == ["КЭ1", "Конвектор электрический", "шт", "2"]
+    assert body["positions"][0]["belgi"] is None
+
+
+def test_dwg_spec_belgi_maydoni_saqlanadi():
+    """Faza-45-topshiriq §B (haqiqiy xato #5, mijoz, 2026-09-08): "Поз."
+    ustunidagi belgi (masalan "КЭ1") kpgen tomonida qator-band aniqlash
+    uchun ishlatiladi — server buni o'zgartirmasdan uzatishi shart."""
+    model_javobi = json.dumps({
+        "positions": [
+            {
+                "naim": "Конвектор электрический",
+                "ed": "шт",
+                "kol": 2,
+                "belgi": "КЭ1",
+                "manba_matnlar": ["КЭ1", "Конвектор электрический", "шт", "2"],
+            }
+        ]
+    })
+    with patch("app.main.ask_claude_dwg_spec", return_value=model_javobi):
+        resp = client.post("/dwg_spec", json={"elements": _ELEMENTS})
+
+    assert resp.status_code == 200
+    assert resp.json()["positions"][0]["belgi"] == "КЭ1"
 
 
 def test_dwg_spec_bosh_natija():

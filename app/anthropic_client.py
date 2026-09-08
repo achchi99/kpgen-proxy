@@ -152,7 +152,8 @@ Vazifang: FAQAT spetsifikatsiya jadvali qatorlarini toping va JSON qaytaring. Ha
 - "naim": jihoz/material nomi (texnik tavsif bilan, agar bo'lsa)
 - "ed": o'lchov birligi (masalan "шт", "компл.", "м")
 - "kol": miqdor (son) — agar ANIQ va ishonchli topa olmasang, null qo'y (TAXMIN QILMA)
-- "manba_matnlar": ushbu pozitsiyani qurish uchun ISHLATGAN elementlaring matnini AYNAN, SO'ZMA-SO'Z (o'zgartirmasdan, tarjima qilmasdan) ro'yxat qilib ber — bu MAJBURIY, tekshiruv uchun kerak
+- "belgi": jadvalning "Поз." (pozitsiya) ustunidagi qisqa belgi/kod, agar mavjud bo'lsa (masalan "КЭ1", "В1", "К1, К2") — bu ELEMENTLAR RO'YXATIDA AYNAN shu matn sifatida bo'lishi SHART; bunday belgi umuman yo'q/aniqlanmasa — null
+- "manba_matnlar": ushbu pozitsiyani qurish uchun ISHLATGAN elementlaring matnini AYNAN, SO'ZMA-SO'Z (o'zgartirmasdan, tarjima qilmasdan) ro'yxat qilib ber (shu jumladan "belgi" qiymatining o'zi ham shu ro'yxatda bo'lsin) — bu MAJBURIY, tekshiruv uchun kerak
 
 QOIDALAR:
 - Bir xil jadval bir necha marta takrorlansa (masalan bir nechta bino/varaq uchun) — HAR bir takrorlanishni ALOHIDA pozitsiya sifatida ber, birlashtirma.
@@ -161,7 +162,7 @@ QOIDALAR:
 - Spetsifikatsiyaga aloqasi yo'q matnlarni (sarlavha, shtamp, o'lchamlar, umumiy izohlar) e'tiborsiz qoldir.
 
 Javobing FAQAT xom JSON bo'lsin — kirish so'zisiz, izohsiz, tushuntirishsiz, markdown kod blokisiz (```json yozma). Birinchi belgi javobingda darhol "{{" bo'lishi shart:
-{{"positions": [{{"naim": "...", "ed": "...", "kol": 2, "manba_matnlar": ["...", "..."]}}, ...]}}
+{{"positions": [{{"naim": "...", "ed": "...", "kol": 2, "belgi": "КЭ1", "manba_matnlar": ["...", "..."]}}, ...]}}
 
 Agar hech qanday spetsifikatsiya jadvali topilmasa: {{"positions": []}}
 
