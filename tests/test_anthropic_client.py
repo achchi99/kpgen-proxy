@@ -77,3 +77,19 @@ def test_faqat_thinking_blok_matn_yoq_xato():
         ):
             with pytest.raises(ProxyError, match="matn-blok topilmadi"):
                 ask_claude("test prompt")
+
+
+def test_thinking_aniq_ochirilgan_holda_sorov_yuboriladi():
+    """Ildiz sabab (Мимар sinovida topilgan #2-xato): model o'zi
+    "extended thinking"ni yoqib, butun `max_tokens` byudjetini
+    o'ylashga sarflab, matn-blok umuman qoldirmasligi mumkin edi.
+    Endi HAR bir so'rovda `thinking={"type": "disabled"}` ANIQ
+    uzatilishi shart — shu bilan bu butun xato sinfi oldindan
+    oldini olinadi (byudjet to'liq yakuniy javobga ketadi)."""
+    fake_client = _fake_client([_FakeTextBlock("Вентиляторы")])
+    with patch("app.anthropic_client.get_api_key", return_value="fake-key"):
+        with patch("app.anthropic_client.anthropic.Anthropic", return_value=fake_client):
+            ask_claude("test prompt")
+
+    _, kwargs = fake_client.messages.create.call_args
+    assert kwargs["thinking"] == {"type": "disabled"}

@@ -36,7 +36,20 @@ def _call_anthropic(*, model: str, messages: list[dict], max_tokens: int) -> str
     client = anthropic.Anthropic(api_key=api_key)
 
     try:
-        response = client.messages.create(model=model, max_tokens=max_tokens, messages=messages)
+        # Faza-45-topshiriq §B (haqiqiy xato #2, Мимар sinovida topilgan,
+        # 2026-09-08): murakkab so'rovlarda (uzun DWG-elementlar ro'yxati)
+        # model o'zi "extended thinking"ni yoqib yuborishi mumkin edi —
+        # butun `max_tokens` byudjeti o'ylashga sarflanib, yakuniy JSON
+        # javobiga o'rin qolmagan (faqat ThinkingBlock, matn-blok YO'Q).
+        # Bizga bu yerda fikrlash jarayoni emas, to'g'ridan-to'g'ri
+        # tuzilgan javob kerak — shuning uchun thinking ANIQ o'chiriladi
+        # (xarajat/vaqt ham shu bilan bashorat qilinadigan bo'ladi).
+        response = client.messages.create(
+            model=model,
+            max_tokens=max_tokens,
+            messages=messages,
+            thinking={"type": "disabled"},
+        )
     except anthropic.AuthenticationError as exc:
         raise ProxyError("Anthropic API kalit noto'g'ri yoki muddati o'tgan", status_code=500) from exc
     except anthropic.RateLimitError as exc:
