@@ -61,7 +61,18 @@ def _call_anthropic(*, model: str, messages: list[dict], max_tokens: int) -> str
             model, usage.input_tokens, usage.output_tokens,
         )
 
-    return response.content[0].text.strip()
+    # Faza-45-topshiriq §B (haqiqiy xato, Мимар sinovida topilgan, 2026-
+    # 09-08): `content[0]` HAR DOIM matn-blok deb taxmin qilingan edi —
+    # lekin murakkab so'rovlarda (masalan uzun DWG-elementlar ro'yxati)
+    # model avtomatik "extended thinking" ishlatishi mumkin, natijada
+    # `content[0]` — `.text` MAYDONI YO'Q `ThinkingBlock`. Endi ro'yxatdan
+    # BIRINCHI haqiqiy matn-blok qidiriladi (qaysi index'da bo'lishidan
+    # qat'i nazar).
+    for block in response.content:
+        text = getattr(block, "text", None)
+        if text is not None:
+            return text.strip()
+    raise ProxyError("Anthropic API javobida matn-blok topilmadi", status_code=502)
 
 
 def ask_claude(prompt: str, *, max_tokens: int = 100) -> str:
