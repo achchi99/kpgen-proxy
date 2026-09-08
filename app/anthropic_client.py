@@ -1,9 +1,13 @@
 """Anthropic API chaqiruvi — xatolar tushunarli xabarga aylantiriladi,
 server hech qachon qulamaydi (chaqiruvchi tomon HTTP xato qaytaradi)."""
 
+import logging
+
 import anthropic
 
-from app.config import MODEL_NAME, VISION_MODEL_NAME, get_api_key
+from app.config import DWG_SPEC_MAX_TOKENS, DWG_SPEC_MODEL_NAME, MODEL_NAME, VISION_MODEL_NAME, get_api_key
+
+_log = logging.getLogger("kpgen_proxy")
 
 
 class ProxyError(Exception):
@@ -46,6 +50,16 @@ def _call_anthropic(*, model: str, messages: list[dict], max_tokens: int) -> str
 
     if not response.content:
         raise ProxyError("Anthropic API bo'sh javob qaytardi", status_code=502)
+
+    # Faza-45-topshiriq §B (mijoz, 2026-09-08, "xarajat nazorat qilinsin"):
+    # har chaqiruv token-sarfi logga yoziladi — systemd journal orqali
+    # ko'rinadi, alohida monitoring kerak emas.
+    usage = getattr(response, "usage", None)
+    if usage is not None:
+        _log.info(
+            "anthropic chaqiruvi: model=%s in_tokens=%s out_tokens=%s",
+            model, usage.input_tokens, usage.output_tokens,
+        )
 
     return response.content[0].text.strip()
 
@@ -96,3 +110,47 @@ def ask_claude_vision(image_base64: str, context: str, *, max_tokens: int = 20) 
         }
     ]
     return _call_anthropic(model=VISION_MODEL_NAME, messages=messages, max_tokens=max_tokens)
+
+
+# Faza-45-topshiriq §B (mijoz, 2026-09-08): DWG'da determinal o'qish
+# muvaffaqiyatsiz bo'lganda (spetsifikatsiya topilmadi, yoki tanlangan
+# qatlam fayldagi eng kattasidan sezilarli kichik) — xom TEXT/MTEXT
+# elementlari (matn+koordinata+qatlam, ALLAQACHON DXF'dan o'qilgan,
+# qo'shimcha render/vision kerak emas) modelga beriladi, jadval
+# tiklanadi. Har pozitsiya QAYSI aniq manba-matn(lar)dan kelganini
+# ("manba_matnlar") ko'rsatishi SHART — kpgen tomonida (`ai/dwg_ai.py`)
+# bu iqtiboslar asl elementlar ro'yxati bilan (matn VA koordinata
+# yaqinligi bo'yicha) tekshiriladi, model "o'ylab topgan" raqam hech
+# qachon КП'ga tushmasligi kerak (mijozning qat'iy sharti).
+_DWG_SPEC_PROMPT = """Senga CAD chizmasidan (DXF) xom matn elementlari beriladi — har birining matni, x/y koordinatasi va qatlam nomi. Bu matnlar orasida qurilish/muhandislik uskunalar spetsifikatsiyasi jadvali bor (odatda ustunlar: Поз./Наименование/Единица измерения/Количество yoki shunga o'xshash), lekin u boshqa chizma matnlari (sarlavhalar, o'lchamlar, izohlar, shtamp) bilan aralashgan va bir nechta qatlamga bo'lingan bo'lishi mumkin.
+
+Vazifang: FAQAT spetsifikatsiya jadvali qatorlarini toping va JSON qaytaring. Har bir pozitsiya uchun:
+- "naim": jihoz/material nomi (texnik tavsif bilan, agar bo'lsa)
+- "ed": o'lchov birligi (masalan "шт", "компл.", "м")
+- "kol": miqdor (son) — agar ANIQ va ishonchli topa olmasang, null qo'y (TAXMIN QILMA)
+- "manba_matnlar": ushbu pozitsiyani qurish uchun ISHLATGAN elementlaring matnini AYNAN, SO'ZMA-SO'Z (o'zgartirmasdan, tarjima qilmasdan) ro'yxat qilib ber — bu MAJBURIY, tekshiruv uchun kerak
+
+QOIDALAR:
+- Bir xil jadval bir necha marta takrorlansa (masalan bir nechta bino/varaq uchun) — HAR bir takrorlanishni ALOHIDA pozitsiya sifatida ber, birlashtirma.
+- Faqat berilgan elementlar ro'yxatidagi matnlardan foydalan — hech narsani o'zingdan qo'shma yoki o'ylab topma.
+- "manba_matnlar"dagi har bir satr ro'yxatda AYNAN shunday (harfma-harf) bo'lishi SHART.
+- Spetsifikatsiyaga aloqasi yo'q matnlarni (sarlavha, shtamp, o'lchamlar, umumiy izohlar) e'tiborsiz qoldir.
+
+Faqat quyidagi JSON formatida javob ber, boshqa hech qanday matn yozma:
+{{"positions": [{{"naim": "...", "ed": "...", "kol": 2, "manba_matnlar": ["...", "..."]}}, ...]}}
+
+Agar hech qanday spetsifikatsiya jadvali topilmasa: {{"positions": []}}
+
+Elementlar (matn\tx\ty\tqatlam):
+{elements}"""
+
+
+def ask_claude_dwg_spec(elements_tsv: str, *, max_tokens: int = DWG_SPEC_MAX_TOKENS) -> str:
+    """`elements_tsv` — "matн\\tx\\ty\\tqatlam" qatorlari (bitta element
+    bitta qator). Xom JSON-matnni qaytaradi (parsing/tekshirish
+    chaqiruvchi — `main.py` — vazifasi)."""
+    return _call_anthropic(
+        model=DWG_SPEC_MODEL_NAME,
+        messages=[{"role": "user", "content": _DWG_SPEC_PROMPT.format(elements=elements_tsv)}],
+        max_tokens=max_tokens,
+    )

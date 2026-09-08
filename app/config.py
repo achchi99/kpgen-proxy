@@ -13,6 +13,13 @@ MODEL_NAME = "claude-haiku-4-5"  # matn-klassifikatsiya (/classify)
 # aniqroq model talab qiladi, shuning uchun alohida va environment
 # orqali sozlanadigan (kodga qotirilmagan).
 VISION_MODEL_NAME = os.environ.get("KPGEN_VISION_MODEL", "claude-sonnet-5")
+# DWG spetsifikatsiya tiklash (/dwg_spec) — xom matn+koordinata ro'yxatidan
+# jadval tiklash (Faza-45-topshiriq §B, mijoz, 2026-09-08) — vision bilan
+# bir xil murakkablikda strukturaviy fikrlash talab qiladi.
+DWG_SPEC_MODEL_NAME = os.environ.get("KPGEN_DWG_SPEC_MODEL", "claude-sonnet-5")
+# Bitta DWG so'rovi uchun maksimal chiqish tokeni — juda uzun (o'ylab
+# topilgan) javobning oldini oladi, xarajatni chegaralaydi.
+DWG_SPEC_MAX_TOKENS = int(os.environ.get("KPGEN_DWG_SPEC_MAX_TOKENS", "4096"))
 
 
 def _load_secrets_file(path: Path) -> None:

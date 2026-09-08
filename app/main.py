@@ -6,15 +6,19 @@ yo'naltiradi (API kalit faqat shu serverda, kodda emas — CLAUDE.md §6).
 
 import base64
 import binascii
+import json
+import logging
 import re
 from io import BytesIO
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from PIL import Image, UnidentifiedImageError
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
-from app.anthropic_client import ProxyError, ask_claude, ask_claude_vision
+from app.anthropic_client import ProxyError, ask_claude, ask_claude_dwg_spec, ask_claude_vision
+
+_log = logging.getLogger("kpgen_proxy")
 
 app = FastAPI(title="kpgen-proxy")
 
@@ -44,6 +48,34 @@ class VisionRequest(BaseModel):
 class VisionResponse(BaseModel):
     value: str | None
     confidence: str  # "high" | "low"
+
+
+class DwgElement(BaseModel):
+    text: str = Field(min_length=1)
+    x: float
+    y: float
+    layer: str
+
+
+# Faza-45-topshiriq §B: bitta so'rovdagi elementlar soni chegaralanadi —
+# xarajat/vaqt nazorati (kpgen tomonida ham chegaralanadi, bu — ikkinchi,
+# server-tomon himoya qatlami, mijoz talabi).
+_DWG_SPEC_MAX_ELEMENTS = 5000
+
+
+class DwgSpecRequest(BaseModel):
+    elements: list[DwgElement] = Field(min_length=1, max_length=_DWG_SPEC_MAX_ELEMENTS)
+
+
+class DwgSpecPosition(BaseModel):
+    naim: str = Field(min_length=1)
+    ed: str = ""
+    kol: float | None = None
+    manba_matnlar: list[str] = Field(min_length=1)
+
+
+class DwgSpecResponse(BaseModel):
+    positions: list[DwgSpecPosition]
 
 
 _CLASSIFY_PROMPT = (
@@ -93,3 +125,28 @@ def vision(payload: VisionRequest):
         return VisionResponse(value=cleaned, confidence="high")
 
     return VisionResponse(value=None, confidence="low")
+
+
+@app.post("/dwg_spec", response_model=DwgSpecResponse)
+def dwg_spec(payload: DwgSpecRequest):
+    """Faza-45-topshiriq §B: DXF'dan olingan xom matn+koordinata
+    elementlaridan spetsifikatsiya jadvalini tiklaydi. Bu yerda FAQAT
+    yengil format-tekshiruv (JSON to'g'ri, maydonlar bor) — manba-matn
+    iqtiboslarining ASL elementlarga (matn VA koordinata bo'yicha)
+    mosligini CHUQUR tekshirish kpgen tomonida (`ai/dwg_ai.py`),
+    chunki faqat u ASL SvodRow modeliga yozish huquqiga ega."""
+    elements_tsv = "\n".join(f"{e.text}\t{e.x:.1f}\t{e.y:.1f}\t{e.layer}" for e in payload.elements)
+
+    try:
+        raw = ask_claude_dwg_spec(elements_tsv)
+    except ProxyError as exc:
+        return JSONResponse(status_code=exc.status_code, content={"error": str(exc)})
+
+    try:
+        data = json.loads(raw)
+        parsed = DwgSpecResponse.model_validate(data)
+    except (json.JSONDecodeError, ValidationError) as exc:
+        _log.warning("dwg_spec: model javobi JSON/schema xato: %s", exc)
+        return DwgSpecResponse(positions=[])
+
+    return parsed
