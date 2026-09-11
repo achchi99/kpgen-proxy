@@ -17,10 +17,6 @@ from app.config import (
 
 _log = logging.getLogger("kpgen_proxy")
 
-# VAQTINCHA (Faza-72-topshiriq, 2-bosqich, 0.8-o'lchov) — pastdagi
-# izohga qarang, o'lchovdan keyin olib tashlanadi.
-LAST_USAGE: dict | None = None
-
 
 class ProxyError(Exception):
     """Chaqiruvchi (main.py) tomonidan tushunarli JSON xatoga aylantiriladi."""
@@ -85,12 +81,6 @@ def _call_anthropic(*, model: str, messages: list[dict], max_tokens: int) -> str
             "anthropic chaqiruvi: model=%s in_tokens=%s out_tokens=%s",
             model, usage.input_tokens, usage.output_tokens,
         )
-        # VAQTINCHA (Faza-72-topshiriq, 2-bosqich, 0.8-o'lchov, mijoz
-        # ruxsati bilan) — journalctl o'qish huquqi hali sozlanmagan,
-        # shuning uchun so'nggi so'rov token-sarfi shu global orqali ham
-        # olinadi. O'lchovdan KEYIN olib tashlanadi.
-        global LAST_USAGE
-        LAST_USAGE = {"model": model, "in_tokens": usage.input_tokens, "out_tokens": usage.output_tokens}
 
     # Faza-45-topshiriq §B (haqiqiy xato, Мимар sinovida topilgan, 2026-
     # 09-08): `content[0]` HAR DOIM matn-blok deb taxmin qilingan edi —
