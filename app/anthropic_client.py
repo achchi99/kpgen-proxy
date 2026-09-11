@@ -217,6 +217,21 @@ lekin HAR BIR jismoniy qator matnini "davom_qatorlari" ro'yxatida ALOHIDA,
 XOM holicha (o'zgartirmasdan) saqlab qo'y — bu keyinchalik manba bilan
 tekshirish uchun ishlatiladi.
 
+"davom_qatorlari" — QAT'IY QOIDA: har bir element FAQAT o'sha jismoniy
+qatorning NOM (naim) ustuniga tegishli matn bo'lsin. Boshqa ustunlar
+(tip/marka, birlik, miqdor, massa) o'sha QATORDA birga yozilgan bo'lsa
+ham — ULARGA TEGMA, ular allaqachon "tip"/"ed"/"kol"/"massa" maydonlariga
+alohida chiqadi. Hech qachon bir nechta ustunni bitta "davom_qatorlari"
+elementiga birlashtirma ("|" yoki boshqa belgi bilan ham).
+
+  NOTO'G'RI: "davom_qatorlari": ["Тепловентилятор | VR MINI (EC) | шт. | 5"]
+  TO'G'RI:   "naim": "Тепловентилятор", "tip": "VR MINI (EC)", "ed": "шт.", "kol": "5",
+             "davom_qatorlari": ["Тепловентилятор"]
+
+  NOTO'G'RI: "davom_qatorlari": ["Вентилятор осевой", "N=0,016 kW; U=220 V; n=2 400 rpm | ВЕНТС 125 С | шт. | 1 | 0,75"]
+  TO'G'RI:   "naim": "Вентилятор осевой", "tip": "ВЕНТС 125 С", "ed": "шт.", "kol": "1", "massa": "0,75",
+             "davom_qatorlari": ["Вентилятор осевой", "L=100 m³/h; P=40 Pa;", "N=0,016 kW; U=220 V; n=2 400 rpm"]
+
 Nom BILAN tanish emas — quyidagilar pozitsiya EMAS:
   - bo'lim sarlavhasi (faqat nom, miqdorsiz — masalan "Вентиляция",
     "Оборудования для отопления")
