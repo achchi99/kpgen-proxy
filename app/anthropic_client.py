@@ -65,11 +65,7 @@ def _call_anthropic(*, model: str, messages: list[dict], max_tokens: int) -> str
     except anthropic.APIConnectionError as exc:
         raise ProxyError("Anthropic API bilan bog'lanib bo'lmadi (tarmoq xatosi)", status_code=502) from exc
     except anthropic.APIStatusError as exc:
-        _log.error("DEBUG 400 body=%s", getattr(exc, "body", None))
-        raise ProxyError(
-            f"Anthropic API xato qaytardi: {exc.status_code}: {getattr(exc, 'body', None)}",
-            status_code=502,
-        ) from exc
+        raise ProxyError(f"Anthropic API xato qaytardi: {exc.status_code}", status_code=502) from exc
     except Exception as exc:  # kutilmagan holat — server baribir qulamasin
         raise ProxyError(f"Kutilmagan xato: {exc}", status_code=500) from exc
 
