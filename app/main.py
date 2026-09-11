@@ -9,6 +9,7 @@ import binascii
 import json
 import logging
 import re
+from contextlib import asynccontextmanager
 from io import BytesIO
 
 from fastapi import FastAPI, Request
@@ -18,9 +19,30 @@ from pydantic import BaseModel, Field, ValidationError
 
 from app.anthropic_client import ProxyError, ask_claude, ask_claude_dwg_spec, ask_claude_vision
 
+# Faza-68-topshiriq (mijoz, 2026-09-11, "biz ko'r holda ishlayapmiz"):
+# `logging.basicConfig()` ILGARI HECH QAYERDA chaqirilmagan edi — bu
+# modul VA `anthropic_client.py`dagi barcha `_log.info(...)` chaqiruvlari
+# (masalan /dwg_spec so'rovlari, tekshiruv natijalari) Python logging
+# modulining standart xatti-harakati bo'yicha JIMGINA yo'qolardi (handler
+# yo'q). journalctl'da xizmatning ISHGA TUSHISH xabari HAM ko'rinmasdi —
+# kpgen (asosiy repo) tomonida `web/worker.py` diagnostikasida topilgan
+# aynan shu muammo, bu yerda ham bir xil sabab bilan tuzatiladi. Daraja
+# INFO (diagnostika uchun yetarli, shovqin emas).
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
+
 _log = logging.getLogger("kpgen_proxy")
 
-app = FastAPI(title="kpgen-proxy")
+
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    _log.info("kpgen-proxy ishga tushdi")
+    yield
+
+
+app = FastAPI(title="kpgen-proxy", lifespan=_lifespan)
 
 _NUMBER_RE = re.compile(r"^\d+([.,]\d+)?$")
 
