@@ -5,7 +5,15 @@ import logging
 
 import anthropic
 
-from app.config import DWG_SPEC_MAX_TOKENS, DWG_SPEC_MODEL_NAME, MODEL_NAME, VISION_MODEL_NAME, get_api_key
+from app.config import (
+    DWG_SPEC_MAX_TOKENS,
+    DWG_SPEC_MODEL_NAME,
+    MODEL_NAME,
+    READ_SPEC_MAX_TOKENS,
+    READ_SPEC_MODEL_NAME,
+    VISION_MODEL_NAME,
+    get_api_key,
+)
 
 _log = logging.getLogger("kpgen_proxy")
 
@@ -179,3 +187,148 @@ def ask_claude_dwg_spec(elements_tsv: str, *, max_tokens: int = DWG_SPEC_MAX_TOK
         messages=[{"role": "user", "content": _DWG_SPEC_PROMPT.format(elements=elements_tsv)}],
         max_tokens=max_tokens,
     )
+
+
+# Faza-72-topshiriq (mijoz, 2026-09-11): PDF/Excel spetsifikatsiya
+# sahifasini AI yordamida o'qish — rasm (joylashuv/tuzilma uchun) +
+# xom so'z-koordinata matni (aniq belgilar uchun) BIRGA yuboriladi.
+# T1 (model faqat ko'chiradi, hisoblamaydi), T2 (har qiymat manbada
+# tekshiriladi — bu ISHONCH TEKSHIRUVI kpgen tomonida, `ai/read_spec.py`,
+# bu yerda EMAS), T3 (noaniq — null, taxmin emas) — CLAUDE.md/topshiriq
+# talablari, promptning o'zida takrorlangan.
+_READ_SPEC_PROMPT = """Senga qurilish/muhandislik loyihasining spetsifikatsiya sahifasi beriladi — ikki ko'rinishda:
+1) sahifaning RASMI (joylashuv, jadval chizig'i, qatorlar tuzilmasini ko'rish uchun);
+2) o'sha sahifadagi barcha SO'ZLARNING XOM MATNI, har birining koordinatasi bilan (aniq belgilarni o'qish uchun — rasmda ba'zan belgi noaniq ko'rinishi mumkin, matn har doim aniq).
+
+Bu — GOST uslubidagi ventilyatsiya/isitish/santexnika spetsifikatsiyasi (odatda ustunlar: Поз. / Наименование и техническая характеристика / Тип, марка / Код / Завод-изготовитель / Единица измерения / Количество / Масса единицы / Примечание — lekin aniq ustun tarkibi va tartibi fayldan-faylga farq qiladi, RASMDAN sarlavhani o'qib aniqla).
+
+═══ QATOR TUZILMASI — MUHIM ═══
+
+Bitta pozitsiya bir NECHTA jismoniy qatorga bo'lingan bo'lishi mumkin:
+  - Поз. + nom BIRINCHI qatorda, miqdor OXIRGI qatorda (masalan:
+    "1 | Радиатор отопительный биметаллический" / "10 секций | шт. | 1")
+  - yoki: nom / texnik tavsif (L=, P=, N=, Q= kabi parametrlar, bir
+    necha qatorga bo'linishi mumkin) / tip+birlik+miqdor OXIRGI qatorda
+  - "1.1)", "1.2)", ">" bilan boshlangan qatorlar — OLDINGI pozitsiyaning
+    tarkibi/davomi, YANGI pozitsiya EMAS
+
+Bunday holatlarda barcha jismoniy qatorlarni BITTA pozitsiyaga birlashtir,
+lekin HAR BIR jismoniy qator matnini "davom_qatorlari" ro'yxatida ALOHIDA,
+XOM holicha (o'zgartirmasdan) saqlab qo'y — bu keyinchalik manba bilan
+tekshirish uchun ishlatiladi.
+
+Nom BILAN tanish emas — quyidagilar pozitsiya EMAS:
+  - bo'lim sarlavhasi (faqat nom, miqdorsiz — masalan "Вентиляция",
+    "Оборудования для отопления")
+  - sahifa sarlavhasi takrori (ustun nomlari — "Поз.", "Наименование...")
+  - shtamp maydoni ("Изм.", "Кол.уч.", "Лист", "Инв.№ подл.", imzo maydoni)
+
+═══ MUHIM QOIDALAR — BUZILMASIN ═══
+
+- "L=NNN м³/ч" — bu HAVO SARFI (расход воздуха), FIZIK UZUNLIK EMAS.
+  Hech qachon uzunlik sifatida talqin qilma.
+- "Масса единицы, kg" ustuni — bu OG'IRLIK, miqdor (kol) EMAS. Alohida
+  "massa" maydoniga yoz, "kol"ga aralashtirma.
+- "kol" (Количество) ustunidagi qiymatni XOM MATN sifatida ber — SON
+  SIFATIDA EMAS. Agar u "25/65" kabi ikki qiymatli bo'lsa — aynan
+  "25/65" deb yoz, qaysi son kerakligini HAL QILMA (bu boshqa dastur
+  qismining vazifasi). Vergul/nuqta, bo'shliq — manbadagidek qoldir.
+- HECH NARSANI hisoblama (yig'indi, ko'paytma, birlik o'girish),
+  HECH NARSANI tozalama yoki "chiroyli" qilma. Manbada qanday yozilgan
+  bo'lsa — xuddi shunday ko'chir (imlo xatosi, qisqartma, katta/kichik
+  harf — o'zgarishsiz).
+- Bir xil nom bir necha marta takrorlansa (masalan bir nechta bir xil
+  radiator, turli seksiya soni bilan) — HAR birini ALOHIDA pozitsiya
+  sifatida ber, birlashtirma.
+
+═══ ISHONCHSIZ HOLAT ═══
+
+Agar biror maydonni (naim/tip/ed/kol/prim) ANIQ va ishonchli o'qiy
+olmasang — o'sha maydonga null qo'y, "izoh"da sababini qisqacha yoz
+(masalan "raqam noaniq, qora dog' bilan qoplangan"). TAXMIN QILMA —
+noaniq qiymatdan ko'ra bo'sh maydon yaxshiroq.
+
+═══ JAVOB FORMATI ═══
+
+Javobing FAQAT xom JSON bo'lsin — kirish so'zisiz, izohsiz, markdown
+kod blokisiz (```json yozma). Birinchi belgi javobingda darhol "{{"
+bo'lishi shart:
+
+{{
+  "sahifa": {sahifa_raqami},
+  "bolimlar": [
+    {{
+      "nom": "Вентиляция / Воздуховоды",
+      "qatorlar": [
+        {{
+          "poz": "1",
+          "naim": "Радиатор отопительный биметаллический 10 секций",
+          "tip": null,
+          "ed": "шт.",
+          "kol": "1",
+          "massa": null,
+          "prim": null,
+          "davom_qatorlari": ["Радиатор отопительный биметаллический", "10 секций"],
+          "manba_qator_raqamlari": [4, 5],
+          "ishonch": "yuqori",
+          "izoh": null
+        }}
+      ]
+    }}
+  ],
+  "otkazib_yuborilgan": [
+    {{"matn": "Изм. Кол.уч. Лист № докум. Подп. Дата", "sabab": "shtamp"}}
+  ]
+}}
+
+Agar sahifada hech qanday spetsifikatsiya jadvali topilmasa:
+{{"sahifa": {sahifa_raqami}, "bolimlar": [], "otkazib_yuborilgan": []}}
+
+═══ KIRISH MA'LUMOTLARI ═══
+
+Sahifa raqami: {sahifa_raqami}
+
+Avvalgi sahifadan kontekst (agar bo'lsa — bo'lim/pozitsiya jadval
+davom etayotganini bildiradi): {avvalgi_kontekst}
+
+So'zlar (matn, x0, y0, x1, y1 — PDF koordinata, chapdan-o'ngga,
+yuqoridan-pastga):
+{sozlar}"""
+
+
+def ask_claude_read_spec(
+    image_base64: str,
+    sozlar_tsv: str,
+    *,
+    sahifa_raqami: int,
+    avvalgi_kontekst: str = "yo'q (birinchi sahifa)",
+    max_tokens: int = READ_SPEC_MAX_TOKENS,
+) -> str:
+    """Sahifa rasmi (base64 PNG) + so'z-koordinata matnini modelga
+    yuboradi, xom JSON-matnni qaytaradi (parsing/tekshirish chaqiruvchi
+    — `main.py` server-tomon shakl-tekshiruvi, ASOSIY manba-tekshiruvi
+    esa kpgen tomonida, `ai/read_spec.py`)."""
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": "image/png",
+                        "data": image_base64,
+                    },
+                },
+                {
+                    "type": "text",
+                    "text": _READ_SPEC_PROMPT.format(
+                        sahifa_raqami=sahifa_raqami,
+                        avvalgi_kontekst=avvalgi_kontekst,
+                        sozlar=sozlar_tsv,
+                    ),
+                },
+            ],
+        }
+    ]
+    return _call_anthropic(model=READ_SPEC_MODEL_NAME, messages=messages, max_tokens=max_tokens)

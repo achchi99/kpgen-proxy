@@ -17,7 +17,7 @@ from fastapi.responses import JSONResponse
 from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel, Field, ValidationError
 
-from app.anthropic_client import ProxyError, ask_claude, ask_claude_dwg_spec, ask_claude_vision
+from app.anthropic_client import ProxyError, ask_claude, ask_claude_dwg_spec, ask_claude_read_spec, ask_claude_vision
 
 # Faza-68-topshiriq (mijoz, 2026-09-11, "biz ko'r holda ishlayapmiz"):
 # `logging.basicConfig()` ILGARI HECH QAYERDA chaqirilmagan edi — bu
@@ -139,6 +139,59 @@ class DwgSpecResponse(BaseModel):
     positions: list[DwgSpecPosition]
 
 
+# Faza-72-topshiriq (mijoz, 2026-09-11): PDF/Excel sahifa-o'qish.
+# Kpgen tomonidagi model — bu yerdagi Pydantic sxema FAQAT shakl-
+# tekshiruvi (maydonlar to'g'ri turdami) — manba-matn bilan tekshirish
+# (ASOSIY, T2) kpgen tomonida (`ai/read_spec.py`), chunki faqat u
+# ASL matn-koordinata ro'yxatiga (bu so'rovni yuborgan) ega.
+_READ_SPEC_MAX_WORDS = 4000
+
+
+class ReadSpecWord(BaseModel):
+    matn: str = Field(min_length=1)
+    x0: float
+    y0: float
+    x1: float
+    y1: float
+
+
+class ReadSpecRequest(BaseModel):
+    image_base64: str = Field(min_length=1)
+    sozlar: list[ReadSpecWord] = Field(min_length=1, max_length=_READ_SPEC_MAX_WORDS)
+    sahifa_raqami: int = Field(ge=1)
+    avvalgi_kontekst: str = "yo'q (birinchi sahifa)"
+
+
+class ReadSpecRow(BaseModel):
+    poz: str | None = None
+    naim: str = Field(min_length=1)
+    tip: str | None = None
+    ed: str | None = None
+    kol: str | None = None
+    massa: str | None = None
+    prim: str | None = None
+    davom_qatorlari: list[str] = Field(default_factory=list)
+    manba_qator_raqamlari: list[int] = Field(default_factory=list)
+    ishonch: str = "past"  # "yuqori" | "o'rta" | "past"
+    izoh: str | None = None
+
+
+class ReadSpecBolim(BaseModel):
+    nom: str = ""
+    qatorlar: list[ReadSpecRow] = Field(default_factory=list)
+
+
+class ReadSpecOtkazib(BaseModel):
+    matn: str
+    sabab: str = ""
+
+
+class ReadSpecResponse(BaseModel):
+    sahifa: int
+    bolimlar: list[ReadSpecBolim] = Field(default_factory=list)
+    otkazib_yuborilgan: list[ReadSpecOtkazib] = Field(default_factory=list)
+
+
 _CLASSIFY_PROMPT = (
     "Sen ventilyatsiya jihozlari nomlarini tasniflaydigan yordamchisan. "
     "Quyidagi nomga eng mos keladigan qisqa kategoriya nomini rus tilida, "
@@ -213,4 +266,51 @@ def dwg_spec(payload: DwgSpecRequest):
         return DwgSpecResponse(positions=[])
 
     _log.info("dwg_spec: %d pozitsiya qaytarilmoqda", len(parsed.positions))
+    return parsed
+
+
+@app.post("/read_spec", response_model=ReadSpecResponse)
+def read_spec(payload: ReadSpecRequest):
+    """Faza-72-topshiriq: PDF/Excel spetsifikatsiya sahifasini (rasm +
+    so'z-koordinata matni) AI yordamida tuzilmaga soladi. Bu yerda FAQAT
+    yengil format-tekshiruv (Pydantic sxema) — manba-matn iqtiboslarining
+    ASL so'zlarga mosligini CHUQUR tekshirish kpgen tomonida
+    (`ai/read_spec.py`), xuddi `/dwg_spec` bilan bir xil tamoyil."""
+    try:
+        image_bytes = base64.b64decode(payload.image_base64, validate=True)
+    except (binascii.Error, ValueError) as exc:
+        return JSONResponse(status_code=422, content={"error": f"image_base64 buzuq: {exc}"})
+
+    try:
+        Image.open(BytesIO(image_bytes)).verify()
+    except (UnidentifiedImageError, OSError) as exc:
+        return JSONResponse(status_code=422, content={"error": f"image_base64 haqiqiy rasm emas: {exc}"})
+
+    sozlar_tsv = "\n".join(
+        f"{w.matn}\t{w.x0:.1f}\t{w.y0:.1f}\t{w.x1:.1f}\t{w.y1:.1f}" for w in payload.sozlar
+    )
+    _log.info(
+        "read_spec: sahifa=%d, %d so'z qabul qilindi",
+        payload.sahifa_raqami, len(payload.sozlar),
+    )
+
+    try:
+        raw = ask_claude_read_spec(
+            payload.image_base64, sozlar_tsv,
+            sahifa_raqami=payload.sahifa_raqami,
+            avvalgi_kontekst=payload.avvalgi_kontekst,
+        )
+    except ProxyError as exc:
+        _log.warning("read_spec: Anthropic chaqiruvi muvaffaqiyatsiz: %s", exc)
+        return JSONResponse(status_code=exc.status_code, content={"error": str(exc)})
+
+    try:
+        data = json.loads(_extract_json_object(raw))
+        parsed = ReadSpecResponse.model_validate(data)
+    except (json.JSONDecodeError, ValidationError) as exc:
+        _log.warning("read_spec: model javobi JSON/schema xato: %s", exc)
+        return ReadSpecResponse(sahifa=payload.sahifa_raqami, bolimlar=[], otkazib_yuborilgan=[])
+
+    qator_soni = sum(len(b.qatorlar) for b in parsed.bolimlar)
+    _log.info("read_spec: %d bo'lim, %d qator qaytarilmoqda", len(parsed.bolimlar), qator_soni)
     return parsed

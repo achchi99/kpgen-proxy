@@ -20,6 +20,12 @@ DWG_SPEC_MODEL_NAME = os.environ.get("KPGEN_DWG_SPEC_MODEL", "claude-sonnet-5")
 # Bitta DWG so'rovi uchun maksimal chiqish tokeni — juda uzun (o'ylab
 # topilgan) javobning oldini oladi, xarajatni chegaralaydi.
 DWG_SPEC_MAX_TOKENS = int(os.environ.get("KPGEN_DWG_SPEC_MAX_TOKENS", "4096"))
+# PDF/Excel sahifa-o'qish (/read_spec, Faza-72-topshiriq, mijoz,
+# 2026-09-11) — rasm + matn birga (vision bilan bir xil murakkablikda,
+# lekin bitta sahifada ko'p qator/bo'lim bo'lishi mumkin, shuning uchun
+# max_tokens dwg_spec'dan kattaroq standart bilan).
+READ_SPEC_MODEL_NAME = os.environ.get("KPGEN_READ_SPEC_MODEL", "claude-sonnet-5")
+READ_SPEC_MAX_TOKENS = int(os.environ.get("KPGEN_READ_SPEC_MAX_TOKENS", "8192"))
 
 
 def _load_secrets_file(path: Path) -> None:
