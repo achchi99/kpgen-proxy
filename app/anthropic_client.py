@@ -17,12 +17,6 @@ from app.config import (
 
 _log = logging.getLogger("kpgen_proxy")
 
-# VAQTINCHALIK, Faza-72 Band-5 o'lchovi uchun (mijoz, 2026-09-12) —
-# haqiqiy token-sarfini o'lchashdan KEYIN OLIB TASHLANADI (0.8-o'lchov
-# bilan bir xil naqsh, o'sha ham shu tarzda vaqtincha qo'shilib
-# qaytarib olingan edi).
-LAST_USAGE: dict | None = None
-
 
 class ProxyError(Exception):
     """Chaqiruvchi (main.py) tomonidan tushunarli JSON xatoga aylantiriladi."""
@@ -102,12 +96,6 @@ def _call_anthropic(*, model: str, messages: list[dict], max_tokens: int) -> str
             "anthropic chaqiruvi: model=%s in_tokens=%s out_tokens=%s",
             model, usage.input_tokens, usage.output_tokens,
         )
-        global LAST_USAGE
-        LAST_USAGE = {
-            "model": model,
-            "input_tokens": usage.input_tokens,
-            "output_tokens": usage.output_tokens,
-        }
 
     # Faza-45-topshiriq §B (haqiqiy xato, Мимар sinovida topilgan, 2026-
     # 09-08): `content[0]` HAR DOIM matn-blok deb taxmin qilingan edi —
