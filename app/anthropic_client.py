@@ -17,6 +17,13 @@ from app.config import (
 
 _log = logging.getLogger("kpgen_proxy")
 
+# Faza-72, Band 1a (mijoz, 2026-09-12): oxirgi chaqiruvning token-sarfi
+# — `main.py`ning `/read_spec` javobiga qo'shiladi (`ReadSpecResponse.
+# usage`), shunda kpgen tomoni (`run_shadow.py --max-xarajat`) HAQIQIY
+# xarajatni real vaqtda kuzatib, chegaraga yetganda to'xtay oladi
+# (taxminga tayanmasdan).
+LAST_USAGE: dict | None = None
+
 
 class ProxyError(Exception):
     """Chaqiruvchi (main.py) tomonidan tushunarli JSON xatoga aylantiriladi."""
@@ -65,6 +72,23 @@ def _call_anthropic(*, model: str, messages: list[dict], max_tokens: int) -> str
     except anthropic.APIConnectionError as exc:
         raise ProxyError("Anthropic API bilan bog'lanib bo'lmadi (tarmoq xatosi)", status_code=502) from exc
     except anthropic.APIStatusError as exc:
+        # Faza-72, 3-bosqich yakunida topilgan haqiqiy xato (mijoz,
+        # 2026-09-12): sibir_ventilyatsiya 010-015 va Band-5'ning
+        # sunon/002'dan boshlab yiqilishi — ikkalasida ham bitta sekin
+        # 400, KEYIN barcha keyingi so'rovlar instant 400 bilan
+        # yiqilardi. Sabab endi aniqlandi: Anthropic hisobining kredit
+        # balansi tugagan edi (400 xato matnida "credit balance"
+        # iborasi bor) — bu boshqa har qanday 400'dan (masalan noto'g'ri
+        # so'rov formati) TUBDAN farqli: qayta urinish yordam bermaydi,
+        # hisobni to'ldirish kerak. Endi ALOHIDA, aniq turkum bilan
+        # ushlanadi — log'da ham, javobda ham darhol ko'rinadi.
+        xabar_matni = str(getattr(exc, "message", "") or str(exc))
+        if "credit balance" in xabar_matni.lower():
+            _log.error("ANTHROPIC KREDIT BALANSI TUGADI: %s", xabar_matni)
+            raise ProxyError(
+                "Anthropic hisobida kredit balansi yetarli emas — hisobni to'ldiring",
+                status_code=402,
+            ) from exc
         raise ProxyError(f"Anthropic API xato qaytardi: {exc.status_code}", status_code=502) from exc
     except Exception as exc:  # kutilmagan holat — server baribir qulamasin
         raise ProxyError(f"Kutilmagan xato: {exc}", status_code=500) from exc
@@ -96,6 +120,16 @@ def _call_anthropic(*, model: str, messages: list[dict], max_tokens: int) -> str
             "anthropic chaqiruvi: model=%s in_tokens=%s out_tokens=%s",
             model, usage.input_tokens, usage.output_tokens,
         )
+        global LAST_USAGE
+        LAST_USAGE = {
+            "model": model,
+            "input_tokens": usage.input_tokens,
+            "output_tokens": usage.output_tokens,
+            # Faza-72, Band 2 (prompt caching) — mavjud bo'lsa qo'shiladi,
+            # bo'lmasa 0 (SDK versiyasi/keshlanmagan so'rov).
+            "cache_read_input_tokens": getattr(usage, "cache_read_input_tokens", None) or 0,
+            "cache_creation_input_tokens": getattr(usage, "cache_creation_input_tokens", None) or 0,
+        }
 
     # Faza-45-topshiriq §B (haqiqiy xato, Мимар sinovida topilgan, 2026-
     # 09-08): `content[0]` HAR DOIM matn-blok deb taxmin qilingan edi —

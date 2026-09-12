@@ -136,6 +136,29 @@ def test_read_spec_bosh_natija():
     assert resp.json()["bolimlar"] == []
 
 
+def test_read_spec_usage_javobga_qoshiladi():
+    """Faza-72, Band 1a (mijoz, 2026-09-12): kpgen tomoni (`run_shadow.py
+    --max-xarajat`) HAQIQIY xarajatni real vaqtda kuzatishi uchun —
+    `anthropic_client.LAST_USAGE` javobga `usage` maydoni sifatida
+    qo'shilishi shart."""
+    with patch(
+        "app.main.ask_claude_read_spec",
+        return_value='{"sahifa": 1, "bolimlar": [], "otkazib_yuborilgan": []}',
+    ):
+        with patch(
+            "app.main.anthropic_client.LAST_USAGE",
+            {"model": "claude-sonnet-5", "input_tokens": 1000, "output_tokens": 200,
+             "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0},
+        ):
+            resp = client.post("/read_spec", json=_payload())
+
+    assert resp.status_code == 200
+    assert resp.json()["usage"] == {
+        "model": "claude-sonnet-5", "input_tokens": 1000, "output_tokens": 200,
+        "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0,
+    }
+
+
 def test_read_spec_buzuq_json_502_xato_qaytaradi():
     """Faza-72, 3-bosqich yakunidan keyingi tuzatish (mijoz, 2026-09-12):
     ILGARI bu holat 200+bo'sh natija bilan "hech narsa topilmadi"

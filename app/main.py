@@ -17,6 +17,7 @@ from fastapi.responses import JSONResponse
 from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel, Field, ValidationError
 
+from app import anthropic_client
 from app.anthropic_client import ProxyError, ask_claude, ask_claude_dwg_spec, ask_claude_read_spec, ask_claude_vision
 
 # Faza-68-topshiriq (mijoz, 2026-09-11, "biz ko'r holda ishlayapmiz"):
@@ -190,6 +191,11 @@ class ReadSpecResponse(BaseModel):
     sahifa: int
     bolimlar: list[ReadSpecBolim] = Field(default_factory=list)
     otkazib_yuborilgan: list[ReadSpecOtkazib] = Field(default_factory=list)
+    # Faza-72, Band 1a (mijoz, 2026-09-12): chaqiruvchi tomon (kpgen,
+    # run_shadow.py) haqiqiy xarajatni real vaqtda kuzatishi uchun —
+    # taxminga tayanmasdan, har so'rovning o'z narxini bilib to'xtash
+    # (--max-xarajat) imkonini beradi.
+    usage: dict | None = None
 
 
 _CLASSIFY_PROMPT = (
@@ -332,4 +338,5 @@ def read_spec(payload: ReadSpecRequest):
 
     qator_soni = sum(len(b.qatorlar) for b in parsed.bolimlar)
     _log.info("read_spec: %d bo'lim, %d qator qaytarilmoqda", len(parsed.bolimlar), qator_soni)
+    parsed.usage = anthropic_client.LAST_USAGE
     return parsed

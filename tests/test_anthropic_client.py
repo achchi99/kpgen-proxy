@@ -12,6 +12,8 @@ attribute 'text'"). Bu testlar aynan shu ssenariyni sinaydi."""
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+import anthropic
+import httpx2
 import pytest
 
 from app.anthropic_client import ProxyError, ask_claude
@@ -93,6 +95,46 @@ def test_thinking_aniq_ochirilgan_holda_sorov_yuboriladi():
 
     _, kwargs = fake_client.messages.create.call_args
     assert kwargs["thinking"] == {"type": "disabled"}
+
+
+def _real_api_status_error(status_code: int, error_message: str) -> anthropic.APIStatusError:
+    """Haqiqiy Anthropic SDK'ning `_make_status_error_from_response()`
+    bilan BIR XIL formatda xato yasaydi (`err_msg = f"Error code: {code}
+    - {body}"`) — mock emas, real xatti-harakat, aks holda
+    "credit balance" matnini ushlash mantig'i sinalmagan taxmin
+    bo'lib qolardi."""
+    req = httpx2.Request("POST", "https://api.anthropic.com/v1/messages")
+    body = {"type": "error", "error": {"type": "invalid_request_error", "message": error_message}}
+    resp = httpx2.Response(status_code, request=req, json=body)
+    err_msg = f"Error code: {status_code} - {body}"
+    return anthropic.APIStatusError(err_msg, response=resp, body=body)
+
+
+def test_kredit_balansi_tugaganda_aniq_402_xato():
+    """Faza-72, Band 1b (mijoz, 2026-09-12): sibir_ventilyatsiya
+    010-015 va Band-5'ning kaskadli 400-xatolari — sababi Anthropic
+    hisobining kredit balansi tugagani edi. Bu boshqa 400'lardan
+    (masalan noto'g'ri so'rov) TUBDAN farqli (qayta urinish yordam
+    bermaydi) — endi ALOHIDA, aniq status (402) bilan ushlanadi."""
+    exc = _real_api_status_error(400, "Your credit balance is too low to access the Claude API.")
+    with patch("app.anthropic_client.get_api_key", return_value="fake-key"):
+        with patch("app.anthropic_client.anthropic.Anthropic") as mock_client_cls:
+            mock_client_cls.return_value.messages.create.side_effect = exc
+            with pytest.raises(ProxyError, match="kredit") as exc_info:
+                ask_claude("test prompt")
+    assert exc_info.value.status_code == 402
+
+
+def test_boshqa_400_xato_kredit_bilan_aralashtirilmaydi():
+    """Kredit-bog'liq bo'lmagan 400 (masalan noto'g'ri so'rov formati)
+    — eski, umumiy 502 yo'lidan o'tishi kerak, 402 EMAS."""
+    exc = _real_api_status_error(400, "messages: at least one message is required")
+    with patch("app.anthropic_client.get_api_key", return_value="fake-key"):
+        with patch("app.anthropic_client.anthropic.Anthropic") as mock_client_cls:
+            mock_client_cls.return_value.messages.create.side_effect = exc
+            with pytest.raises(ProxyError) as exc_info:
+                ask_claude("test prompt")
+    assert exc_info.value.status_code == 502
 
 
 def test_max_tokens_chegarasida_kesilgan_javob_xato_beradi():
