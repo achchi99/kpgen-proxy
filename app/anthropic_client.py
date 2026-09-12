@@ -247,6 +247,24 @@ elementiga birlashtirma ("|" yoki boshqa belgi bilan ham).
   TO'G'RI:   "naim": "Вентилятор осевой", "tip": "ВЕНТС 125 С", "ed": "шт.", "kol": "1", "massa": "0,75",
              "davom_qatorlari": ["Вентилятор осевой", "L=100 m³/h; P=40 Pa;", "N=0,016 kW; U=220 V; n=2 400 rpm"]
 
+"davom_qatorlari" TO'LIQ bo'lishi SHART: "naim"ga qo'shgan HAR BIR
+manba-matn bo'lagi "davom_qatorlari"da HAM bo'lishi kerak (naim —
+mohiyatan shu ro'yxatning birlashmasi). Bironta bo'lakni naim'ga
+qo'shib, "davom_qatorlari"da UNUTIB QOLDIRMA.
+
+  NOTO'G'RI: "naim": "Наружная заслонка с приводом. Фильтр G4",
+             "davom_qatorlari": ["Фильтр G4"]  ← "Наружная заслонка..." yo'q
+  TO'G'RI:   "naim": "Наружная заслонка с приводом. Фильтр G4",
+             "davom_qatorlari": ["Наружная заслонка с приводом", "Фильтр G4"]
+
+"naim" va "davom_qatorlari" — FAQAT manbadagi XOM matn. Hech qanday
+o'z izohingni, meta-belgini yoki tushuntirishingni QO'SHMA (masalan
+"(davom)", "(davom keyingi sahifada)", "(taxminan)" kabi) — bunday
+izoh uchun ALOHIDA "izoh" maydoni bor, undan foydalan.
+
+  NOTO'G'RI: "naim": "Приточно-вытяжная установка. Состав (davom): ... (davom keyingi sahifada)"
+  TO'G'RI:   "naim": "Приточно-вытяжная установка. Состав: ...", "izoh": "pozitsiya keyingi sahifada davom etadi"
+
 Nom BILAN tanish emas — quyidagilar pozitsiya EMAS:
   - bo'lim sarlavhasi (faqat nom, miqdorsiz — masalan "Вентиляция",
     "Оборудования для отопления")
