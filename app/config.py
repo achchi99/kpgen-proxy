@@ -39,11 +39,10 @@ READ_SPEC_MAX_TOKENS = int(os.environ.get("KPGEN_READ_SPEC_MAX_TOKENS", "16384")
 # hisoblanadi, /read_spec ostida). Yetganda /read_spec 429 qaytaradi
 # (Anthropic'ga SO'ROV YUBORILMAYDI — xarajat aynan shu daqiqada
 # to'xtaydi), kpgen tomoni buni "AI kunlik chegara" deb aniq talqin
-# qilib, qoida yo'liga o'tadi.
+# qilib, qoida yo'liga o'tadi. Xotirada saqlanadi (`kunlik_xarajat.py`) —
+# `kpgen-proxy` xizmati `ProtectSystem=strict`/`ReadOnlyPaths` bilan
+# ishlaydi, diskka yozish YO'Q (real production sinovida aniqlangan).
 AI_KUNLIK_XARAJAT_CHEGARA = float(os.environ.get("KPGEN_AI_KUNLIK_XARAJAT", "2.0"))
-AI_KUNLIK_HOLAT_FAYL = Path(
-    os.environ.get("KPGEN_AI_KUNLIK_HOLAT_FAYL", str(Path(__file__).resolve().parent.parent / "data" / "ai_kunlik_xarajat.json"))
-)
 
 
 def _load_secrets_file(path: Path) -> None:
