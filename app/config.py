@@ -34,6 +34,17 @@ READ_SPEC_MODEL_NAME = os.environ.get("KPGEN_READ_SPEC_MODEL", "claude-sonnet-5"
 # repo'sida) — ikkalasi birga.
 READ_SPEC_MAX_TOKENS = int(os.environ.get("KPGEN_READ_SPEC_MAX_TOKENS", "16384"))
 
+# Faza-72, 4-bosqich (mijoz, 2026-09-12): AI shadow-rejimi production
+# quvuriga ulanishidan OLDIN — kunlik xarajat chegarasi (real usage'dan
+# hisoblanadi, /read_spec ostida). Yetganda /read_spec 429 qaytaradi
+# (Anthropic'ga SO'ROV YUBORILMAYDI — xarajat aynan shu daqiqada
+# to'xtaydi), kpgen tomoni buni "AI kunlik chegara" deb aniq talqin
+# qilib, qoida yo'liga o'tadi.
+AI_KUNLIK_XARAJAT_CHEGARA = float(os.environ.get("KPGEN_AI_KUNLIK_XARAJAT", "2.0"))
+AI_KUNLIK_HOLAT_FAYL = Path(
+    os.environ.get("KPGEN_AI_KUNLIK_HOLAT_FAYL", str(Path(__file__).resolve().parent.parent / "data" / "ai_kunlik_xarajat.json"))
+)
+
 
 def _load_secrets_file(path: Path) -> None:
     """`/etc/kpgen-secrets.env` faylini (KEY=VALUE qatorlari, # izohlar

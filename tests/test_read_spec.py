@@ -125,6 +125,36 @@ def test_read_spec_otkazib_yuborilgan_royxati():
     assert resp.json()["otkazib_yuborilgan"] == [{"matn": "Изм. Кол.уч. Лист", "sabab": "shtamp"}]
 
 
+def test_read_spec_kunlik_xarajat_chegarasida_429_va_anthropicga_sorov_ketmaydi():
+    """Faza-72, 4-bosqich (mijoz, 2026-09-12): kunlik chegaraga yetgan
+    bo'lsa — Anthropic'ga SO'ROV UMUMAN YUBORILMAYDI (xarajat aynan shu
+    yerda to'xtaydi), 429 aniq matn bilan qaytadi."""
+    with patch("app.main.kunlik_xarajat.chegaraga_yetdimi", return_value=True):
+        with patch("app.main.ask_claude_read_spec") as mock_ask:
+            resp = client.post("/read_spec", json=_payload())
+            mock_ask.assert_not_called()
+
+    assert resp.status_code == 429
+    assert "kunlik" in resp.json()["error"].lower()
+
+
+def test_read_spec_muvaffaqiyatli_sorov_kunlik_xarajatga_qoshiladi():
+    with patch(
+        "app.main.ask_claude_read_spec",
+        return_value='{"sahifa": 1, "bolimlar": [], "otkazib_yuborilgan": []}',
+    ):
+        with patch(
+            "app.main.anthropic_client.LAST_USAGE",
+            {"model": "claude-sonnet-5", "input_tokens": 1000, "output_tokens": 200,
+             "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0},
+        ):
+            with patch("app.main.kunlik_xarajat.qoshish") as mock_qoshish:
+                resp = client.post("/read_spec", json=_payload())
+
+    assert resp.status_code == 200
+    mock_qoshish.assert_called_once()
+
+
 def test_read_spec_bosh_natija():
     with patch(
         "app.main.ask_claude_read_spec",

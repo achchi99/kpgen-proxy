@@ -17,7 +17,7 @@ from fastapi.responses import JSONResponse
 from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel, Field, ValidationError
 
-from app import anthropic_client
+from app import anthropic_client, kunlik_xarajat
 from app.anthropic_client import ProxyError, ask_claude, ask_claude_dwg_spec, ask_claude_read_spec, ask_claude_vision
 
 # Faza-68-topshiriq (mijoz, 2026-09-11, "biz ko'r holda ishlayapmiz"):
@@ -295,6 +295,19 @@ def read_spec(payload: ReadSpecRequest):
     except (UnidentifiedImageError, OSError) as exc:
         return JSONResponse(status_code=422, content={"error": f"image_base64 haqiqiy rasm emas: {exc}"})
 
+    # Faza-72, 4-bosqich (mijoz, 2026-09-12): kunlik xarajat chegarasi —
+    # Anthropic'ga SO'ROV YUBORISHDAN OLDIN tekshiriladi (chegaradan
+    # keyingi so'rov hech qanday xarajat qilmaydi). Matn ANIQ "kunlik
+    # xarajat chegarasi" iborasini o'z ichiga oladi — kpgen tomoni
+    # (`ai/shadow.py`) buni boshqa 429 (masalan Anthropic rate-limit)
+    # bilan ARALASHTIRMASLIK uchun shu matnga qarab aniqlaydi.
+    if kunlik_xarajat.chegaraga_yetdimi():
+        _log.warning("read_spec: kunlik AI xarajat chegarasiga yetildi, so'rov rad etildi")
+        return JSONResponse(
+            status_code=429,
+            content={"error": "AI kunlik xarajat chegarasiga yetildi — ertaga qayta urinib ko'ring"},
+        )
+
     sozlar_tsv = "\n".join(
         f"{w.matn}\t{w.x0:.1f}\t{w.y0:.1f}\t{w.x1:.1f}\t{w.y1:.1f}" for w in payload.sozlar
     )
@@ -342,4 +355,7 @@ def read_spec(payload: ReadSpecRequest):
     qator_soni = sum(len(b.qatorlar) for b in parsed.bolimlar)
     _log.info("read_spec: %d bo'lim, %d qator qaytarilmoqda", len(parsed.bolimlar), qator_soni)
     parsed.usage = anthropic_client.LAST_USAGE
+    if anthropic_client.LAST_USAGE:
+        jami = kunlik_xarajat.qoshish(anthropic_client.LAST_USAGE)
+        _log.info("read_spec: bugungi jami AI xarajati $%.4f", jami)
     return parsed
