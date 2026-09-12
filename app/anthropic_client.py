@@ -331,9 +331,19 @@ Nom BILAN tanish emas — quyidagilar pozitsiya EMAS:
 
 - Agar bitta katak/qatorda IKKI TIL bo'lsa (odatda "/" bilan yoki
   alohida qator bilan ajratilgan rus+ingliz tarjimasi, больница-uslubi
-  spetsifikatsiyalarda tez-tez uchraydi) — "naim"ga (va
-  "davom_qatorlari"ga) FAQAT RUSCHA qismni yoz, inglizcha tarjimasini
-  TASHLA. Masalan "Дымоход, DN / Chimney, DN" -> naim="Дымоход, DN".
+  spetsifikatsiyalarda tez-tez uchraydi) — bu FAQAT "naim"ga tegishli:
+  "naim"ga FAQAT RUSCHA qismni yoz, inglizcha tarjimasini TASHLA.
+  Masalan "Дымоход, DN / Chimney, DN" -> naim="Дымоход, DN".
+  "davom_qatorlari" BUNGA BOSHQACHA — u har doim manba katagining
+  XOM, TO'LIQ matni (ruscha VA inglizcha qismi BIRGA, hech narsa
+  olib tashlanmasdan) — chunki "davom_qatorlari" tekshiruv uchun
+  (manba bilan so'zma-so'z solishtiriladi), "naim" esa ko'rsatish
+  uchun — ikkalasining maqsadi BOSHQA-BOSHQA.
+
+  Misol: manba katagi "Циркуляционный насос/Circulation pump, 118 м3/ч"
+  NOTO'G'RI: "davom_qatorlari": ["Циркуляционный насос, 118 м3/ч"]  ← inglizcha olib tashlangan, endi manba bilan SO'ZMA-SO'Z mos emas
+  TO'G'RI:   "naim": "Циркуляционный насос, 118 м3/ч",
+             "davom_qatorlari": ["Циркуляционный насос/Circulation pump, 118 м3/ч"]  ← manba XOM holicha
 - "L=NNN м³/ч" — bu HAVO SARFI (расход воздуха), FIZIK UZUNLIK EMAS.
   Hech qachon uzunlik sifatida talqin qilma.
 - "Масса единицы, kg" ustuni — bu OG'IRLIK, miqdor (kol) EMAS. Alohida
