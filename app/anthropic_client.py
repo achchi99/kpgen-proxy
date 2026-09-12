@@ -252,9 +252,19 @@ Nom BILAN tanish emas — quyidagilar pozitsiya EMAS:
     "Оборудования для отопления")
   - sahifa sarlavhasi takrori (ustun nomlari — "Поз.", "Наименование...")
   - shtamp maydoni ("Изм.", "Кол.уч.", "Лист", "Инв.№ подл.", imzo maydoni)
+  - экспликация помещений (xona/joy ro'yxati — xona nomi + maydon m²,
+    masalan "Лестничная клетка 16.4", "Санузел 2.2") — bu ARXITEKTURA
+    ma'lumoti, ventilyatsiya/isitish/santexnika USKUNASI EMAS. Bunday
+    qatorlarni "otkazib_yuborilgan" ro'yxatiga yoz (sabab: "xona-maydon
+    jadvali, spetsifikatsiya emas"), pozitsiya sifatida BERMA.
 
 ═══ MUHIM QOIDALAR — BUZILMASIN ═══
 
+- Agar bitta katak/qatorda IKKI TIL bo'lsa (odatda "/" bilan yoki
+  alohida qator bilan ajratilgan rus+ingliz tarjimasi, больница-uslubi
+  spetsifikatsiyalarda tez-tez uchraydi) — "naim"ga (va
+  "davom_qatorlari"ga) FAQAT RUSCHA qismni yoz, inglizcha tarjimasini
+  TASHLA. Masalan "Дымоход, DN / Chimney, DN" -> naim="Дымоход, DN".
 - "L=NNN м³/ч" — bu HAVO SARFI (расход воздуха), FIZIK UZUNLIK EMAS.
   Hech qachon uzunlik sifatida talqin qilma.
 - "Масса единицы, kg" ustuni — bu OG'IRLIK, miqdor (kol) EMAS. Alohida
