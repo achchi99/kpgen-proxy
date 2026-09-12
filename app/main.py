@@ -179,6 +179,15 @@ class ReadSpecRow(BaseModel):
     kol: str | None = None
     massa: str | None = None
     prim: str | None = None
+    # Faza-72, 6-bosqich (mijoz, 2026-09-12, AI_READ=on jonli tekshiruvi):
+    # vozduxovod qatorida ASOSIY "kol"/"ed" (uzunlik) DAN TASHQARI,
+    # ALOHIDA katakda ko'pincha "Всего-1,14 кв.м." kabi maydon matni
+    # ham beriladi (qoida yo'lida `parse_maydon_m2()` orqali allaqachon
+    # o'qiladi, Faza-63) — model buni XOM matn sifatida (hisoblamasdan,
+    # o'zgartirmasdan) shu yerga ko'chiradi, kpgen tomonida ("kv_writer/
+    # parse_maydon_m2") songa aylantiriladi. Aksariyat qatorlarda BUNDAY
+    # katak YO'Q — standart holat `null`.
+    maydon_m2_matn: str | None = None
     # Faza-72, 4-bosqich (mijoz, 2026-09-12, MANBA BOG'LANISHI): har
     # maydon uchun ANIQ manba-ID(lar) — masalan
     # {"naim": ["P6", "Q6"], "tip": null, "ed": "R6", "kol": "S6",

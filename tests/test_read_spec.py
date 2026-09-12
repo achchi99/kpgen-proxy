@@ -92,6 +92,41 @@ def test_read_spec_kol_dual_qiymat_xom_saqlanadi():
     assert resp.json()["bolimlar"][0]["qatorlar"][0]["kol"] == "25/65"
 
 
+def test_read_spec_maydon_m2_matn_xom_saqlanadi():
+    """Faza-72, 6-bosqich (mijoz, 2026-09-12, sergeli_rp jonli
+    tekshiruvi): vozduxovod qatorida ASOSIY "kol" (uzunlik) DAN
+    TASHQARI, ALOHIDA "maydon_m2_matn" (masalan "Всего-1,14 кв.м.")
+    XOM matn sifatida (hisoblanmasdan) o'tishi shart."""
+    model_javobi = json.dumps({
+        "sahifa": 1,
+        "bolimlar": [{"nom": "Воздуховоды", "qatorlar": [
+            {"naim": "Воздуховод 150x150", "ed": "м.", "kol": "1,9",
+             "maydon_m2_matn": "Всего-1,14 кв.м."}
+        ]}],
+        "otkazib_yuborilgan": [],
+    })
+    with patch("app.main.ask_claude_read_spec", return_value=model_javobi):
+        resp = client.post("/read_spec", json=_payload())
+
+    assert resp.status_code == 200
+    qator = resp.json()["bolimlar"][0]["qatorlar"][0]
+    assert qator["kol"] == "1,9"
+    assert qator["maydon_m2_matn"] == "Всего-1,14 кв.м."
+
+
+def test_read_spec_maydon_m2_matn_yoq_bolsa_standart_null():
+    model_javobi = json.dumps({
+        "sahifa": 1,
+        "bolimlar": [{"nom": "X", "qatorlar": [{"naim": "Y", "ed": "шт", "kol": "1"}]}],
+        "otkazib_yuborilgan": [],
+    })
+    with patch("app.main.ask_claude_read_spec", return_value=model_javobi):
+        resp = client.post("/read_spec", json=_payload())
+
+    assert resp.status_code == 200
+    assert resp.json()["bolimlar"][0]["qatorlar"][0]["maydon_m2_matn"] is None
+
+
 def test_read_spec_null_maydonlar_qabul_qilinadi():
     """T3 — model noaniq bo'lsa null qo'yadi, taxmin qilmaydi."""
     model_javobi = json.dumps({

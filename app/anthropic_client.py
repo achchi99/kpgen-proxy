@@ -361,6 +361,15 @@ Nom BILAN tanish emas — quyidagilar pozitsiya EMAS:
   SIFATIDA EMAS. Agar u "25/65" kabi ikki qiymatli bo'lsa — aynan
   "25/65" deb yoz, qaysi son kerakligini HAL QILMA (bu boshqa dastur
   qismining vazifasi). Vergul/nuqta, bo'shliq — manbadagidek qoldir.
+- Vozduxovod (yoki shunga o'xshash) qatorida ASOSIY "kol" (uzunlik)DAN
+  TASHQARI, ALOHIDA katakda ko'pincha yana bitta o'lchov bo'ladi —
+  masalan "Всего-1,14 кв.м." yoki "1,14 м2" (jami maydon). Bunday
+  katak ko'rinsa — uni "maydon_m2_matn"ga XOM MATN sifatida
+  (hisoblamasdan, "Всего"/tire/probelni o'zgartirmasdan) yoz, o'z
+  manba-ID'ini "manba"["maydon_m2_matn"]ga qo'sh. Bu — "kol"ni
+  ALMASHTIRMAYDI, ikkalasi ham HAQIQIY, mustaqil qiymat (biri
+  uzunlik, biri maydon). Bunday katak yo'q bo'lsa — maydonni umuman
+  qo'shma (null ham yozmasang bo'ladi).
 - HECH NARSANI hisoblama (yig'indi, ko'paytma, birlik o'girish),
   HECH NARSANI tozalama yoki "chiroyli" qilma. Manbada qanday yozilgan
   bo'lsa — xuddi shunday ko'chir (imlo xatosi, qisqartma, katta/kichik
