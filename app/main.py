@@ -173,7 +173,10 @@ class ReadSpecRow(BaseModel):
     prim: str | None = None
     davom_qatorlari: list[str] = Field(default_factory=list)
     manba_qator_raqamlari: list[int] = Field(default_factory=list)
-    ishonch: str = "past"  # "yuqori" | "o'rta" | "past"
+    # Faza-72, Band 2d (mijoz, 2026-09-12, chiqish-token tejash): model
+    # ENDI faqat "o'rta"/"past" bo'lsa yozadi — maydon yo'q bo'lsa
+    # standart "yuqori" (aksariyat qatorlar shunday) deb qabul qilinadi.
+    ishonch: str = "yuqori"  # "yuqori" | "o'rta" | "past"
     izoh: str | None = None
 
 

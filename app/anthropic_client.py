@@ -313,8 +313,8 @@ Nom BILAN tanish emas — quyidagilar pozitsiya EMAS:
   - экспликация помещений (xona/joy ro'yxati — xona nomi + maydon m²,
     masalan "Лестничная клетка 16.4", "Санузел 2.2") — bu ARXITEKTURA
     ma'lumoti, ventilyatsiya/isitish/santexnika USKUNASI EMAS. Bunday
-    qatorlarni "otkazib_yuborilgan" ro'yxatiga yoz (sabab: "xona-maydon
-    jadvali, spetsifikatsiya emas"), pozitsiya sifatida BERMA.
+    qatorlarni "otkazib_yuborilgan" ro'yxatiga yoz (sabab kodi:
+    "eksplikatsiya"), pozitsiya sifatida BERMA.
 
 ═══ MUHIM QOIDALAR — BUZILMASIN ═══
 
@@ -346,38 +346,38 @@ olmasang — o'sha maydonga null qo'y, "izoh"da sababini qisqacha yoz
 (masalan "raqam noaniq, qora dog' bilan qoplangan"). TAXMIN QILMA —
 noaniq qiymatdan ko'ra bo'sh maydon yaxshiroq.
 
-═══ JAVOB FORMATI ═══
+═══ JAVOB FORMATI — ZICH, MAYDON TEJOVCHI (MUHIM, xarajatga ta'sir qiladi) ═══
 
 Javobing FAQAT xom JSON bo'lsin — kirish so'zisiz, izohsiz, markdown
 kod blokisiz (```json yozma). Birinchi belgi javobingda darhol "{{"
-bo'lishi shart:
+bo'lishi shart.
 
-{{
-  "sahifa": 1,
-  "bolimlar": [
-    {{
-      "nom": "Вентиляция / Воздуховоды",
-      "qatorlar": [
-        {{
-          "poz": "1",
-          "naim": "Радиатор отопительный биметаллический 10 секций",
-          "tip": null,
-          "ed": "шт.",
-          "kol": "1",
-          "massa": null,
-          "prim": null,
-          "davom_qatorlari": ["Радиатор отопительный биметаллический", "10 секций"],
-          "manba_qator_raqamlari": [4, 5],
-          "ishonch": "yuqori",
-          "izoh": null
-        }}
-      ]
-    }}
-  ],
-  "otkazib_yuborilgan": [
-    {{"matn": "Изм. Кол.уч. Лист № докум. Подп. Дата", "sabab": "shtamp"}}
-  ]
-}}
+JSON ZICH bo'lsin: bo'shliq, chekinish (indentation), yangi qator
+ISHLATMA — barcha narsa minimal belgi bilan, quyidagi misoldagidek
+bitta qatorda.
+
+Quyidagi maydonlarni FAQAT kerak bo'lganda yoz, aks holda BUTUNLAY
+TUSHIRIB QOLDIR (JSON kalitining o'zi ham bo'lmasin):
+  - "ishonch": FAQAT "o'rta" yoki "past" bo'lsa yoz. Yozilmasa —
+    "yuqori" deb qabul qilinadi (standart holat, aksariyat qatorlar).
+  - "izoh": FAQAT aytadigan aniq sabab bo'lsa yoz. Bo'lmasa — umuman
+    qo'shma (`null` deb ham yozma, kalitning o'zini tushir).
+  - "manba_qator_raqamlari": FAQAT "davom_qatorlari" to'ldirilgan
+    (pozitsiya bir necha jismoniy qatorga bo'lingan) holatda yoz.
+    Pozitsiya bitta qatorda bo'lsa — bu maydonni umuman qo'shma.
+
+"otkazib_yuborilgan"ning "sabab"i — QISQA KOD, erkin matn EMAS,
+quyidagi 5 tadan BIRI (boshqa variant yozma):
+  "shtamp" | "sarlavha" | "bolim" | "eksplikatsiya" | "boshqa"
+
+Misol (naim/tip/ed/kol/massa/prim MAJBURIY — bo'sh bo'lsa ham
+`null` yoz; "poz" ham har doim yoziladi, bo'lmasa `null`):
+
+{{"sahifa":1,"bolimlar":[{{"nom":"Вентиляция / Воздуховоды","qatorlar":[{{"poz":"1","naim":"Радиатор отопительный биметаллический 10 секций","tip":null,"ed":"шт.","kol":"1","massa":null,"prim":null,"davom_qatorlari":["Радиатор отопительный биметаллический","10 секций"],"manba_qator_raqamlari":[4,5]}}]}}],"otkazib_yuborilgan":[{{"matn":"Изм. Кол.уч. Лист № докум. Подп. Дата","sabab":"shtamp"}}]}}
+
+(bu misolda "ishonch"/"izoh" YO'Q — chunki ishonch yuqori va izoh
+kerak emas edi; "manba_qator_raqamlari" BOR — chunki bu pozitsiya 2
+jismoniy qatorga bo'lingan, "davom_qatorlari" to'ldirilgan.)
 
 ("sahifa": 1 — bu MISOL uchun, haqiqiy qiymatni pastda "KIRISH
 MA'LUMOTLARI"da berilgan aniq sahifa raqamidan ol.)

@@ -221,3 +221,47 @@ def test_read_spec_naim_yoq_qator_rad_etiladi():
         resp = client.post("/read_spec", json=_payload())
 
     assert resp.status_code == 502
+
+
+def test_read_spec_ishonch_izoh_manba_qator_yoq_bolsa_standart_qiymat():
+    """Faza-72, Band 2d (mijoz, 2026-09-12, chiqish-token tejash):
+    model endi 'ishonch'/'izoh'/'manba_qator_raqamlari' maydonlarini
+    ular kerak bo'lmaganda BUTUNLAY tushirib qoldiradi (JSON'da
+    kalitning o'zi yo'q) — server sxemasi buni standart qiymat bilan
+    qabul qilishi shart, rad etmasligi kerak."""
+    model_javobi = json.dumps({
+        "sahifa": 1,
+        "bolimlar": [{
+            "nom": "X",
+            "qatorlar": [{
+                "poz": "1", "naim": "Вентилятор", "tip": None, "ed": "шт.",
+                "kol": "1", "massa": None, "prim": None, "davom_qatorlari": [],
+                # "ishonch", "izoh", "manba_qator_raqamlari" — ATAYLAB yo'q
+            }],
+        }],
+        "otkazib_yuborilgan": [],
+    })
+    with patch("app.main.ask_claude_read_spec", return_value=model_javobi):
+        resp = client.post("/read_spec", json=_payload())
+
+    assert resp.status_code == 200
+    qator = resp.json()["bolimlar"][0]["qatorlar"][0]
+    assert qator["ishonch"] == "yuqori"
+    assert qator["izoh"] is None
+    assert qator["manba_qator_raqamlari"] == []
+
+
+def test_read_spec_otkazib_yuborilgan_qisqa_sabab_kodi_qabul_qilinadi():
+    """Band 2d: 'sabab' endi qisqa kod ('shtamp', 'eksplikatsiya' va
+    h.k.) — erkin uzun matn emas. Server sxemasi bunday qisqa
+    stringni oddiy qabul qiladi (qattiq enum-tekshiruv yo'q, model
+    formatga rioya qiladi deb kutiladi — tekshiruv T2'da emas)."""
+    model_javobi = json.dumps({
+        "sahifa": 1, "bolimlar": [],
+        "otkazib_yuborilgan": [{"matn": "Лестничная клетка 16.4", "sabab": "eksplikatsiya"}],
+    })
+    with patch("app.main.ask_claude_read_spec", return_value=model_javobi):
+        resp = client.post("/read_spec", json=_payload())
+
+    assert resp.status_code == 200
+    assert resp.json()["otkazib_yuborilgan"][0]["sabab"] == "eksplikatsiya"
