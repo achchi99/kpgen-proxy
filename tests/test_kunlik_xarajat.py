@@ -15,6 +15,13 @@ def test_usage_narxi_hisob_togri():
     assert usage_narxi(usage) == 2.00 + 1.00 + 0.10
 
 
+def test_usage_narxi_cache_yozish_hisobga_olinadi():
+    """Codex/mijoz topgan teshik (2026-09-12): kesh-yozish (birinchi
+    so'rov) ILGARI narx-hisobiga UMUMAN kirmasdi."""
+    usage = {"input_tokens": 0, "output_tokens": 0, "cache_creation_input_tokens": 1_000_000}
+    assert usage_narxi(usage) == 2.50
+
+
 def test_boshlanishda_nol_xarajat():
     assert bugungi_xarajat() == 0.0
     assert not chegaraga_yetdimi(chegara=2.0)

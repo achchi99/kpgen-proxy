@@ -24,6 +24,11 @@ from app.config import AI_KUNLIK_XARAJAT_CHEGARA
 NARX_KIRISH = 2.00
 NARX_CHIQISH = 10.00
 NARX_CACHE_READ = 0.20
+# Codex/mijoz topgan teshik (2026-09-12): kesh YOZISH (birinchi so'rov,
+# ephemeral/5-daqiqalik TTL) bazaviy kirish narxidan 1.25x qimmat — bu
+# ILGARI kunlik xarajat hisobiga UMUMAN kirmasdi, chegara nazorati
+# haqiqiy xarajatdan KAMROQ ko'rsatishi mumkin edi.
+NARX_CACHE_YOZISH = 2.50
 
 _holat = {"sana": None, "jami_dollar": 0.0}
 
@@ -33,6 +38,7 @@ def usage_narxi(usage: dict) -> float:
         usage.get("input_tokens", 0) / 1_000_000 * NARX_KIRISH
         + usage.get("output_tokens", 0) / 1_000_000 * NARX_CHIQISH
         + usage.get("cache_read_input_tokens", 0) / 1_000_000 * NARX_CACHE_READ
+        + usage.get("cache_creation_input_tokens", 0) / 1_000_000 * NARX_CACHE_YOZISH
     )
 
 

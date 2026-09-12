@@ -23,12 +23,12 @@ def _sample_image_base64() -> str:
 
 
 _SOZLAR = [
-    {"matn": "1", "x0": 30.0, "y0": 100.0, "x1": 35.0, "y1": 108.0},
-    {"matn": "Радиатор", "x0": 40.0, "y0": 100.0, "x1": 80.0, "y1": 108.0},
-    {"matn": "10", "x0": 40.0, "y0": 112.0, "x1": 48.0, "y1": 120.0},
-    {"matn": "секций", "x0": 50.0, "y0": 112.0, "x1": 80.0, "y1": 120.0},
-    {"matn": "шт.", "x0": 200.0, "y0": 112.0, "x1": 215.0, "y1": 120.0},
-    {"matn": "1", "x0": 250.0, "y0": 112.0, "x1": 255.0, "y1": 120.0},
+    {"id": "w0", "matn": "1", "x0": 30.0, "y0": 100.0, "x1": 35.0, "y1": 108.0},
+    {"id": "w1", "matn": "Радиатор", "x0": 40.0, "y0": 100.0, "x1": 80.0, "y1": 108.0},
+    {"id": "w2", "matn": "10", "x0": 40.0, "y0": 112.0, "x1": 48.0, "y1": 120.0},
+    {"id": "w3", "matn": "секций", "x0": 50.0, "y0": 112.0, "x1": 80.0, "y1": 120.0},
+    {"id": "w4", "matn": "шт.", "x0": 200.0, "y0": 112.0, "x1": 215.0, "y1": 120.0},
+    {"id": "w5", "matn": "1", "x0": 250.0, "y0": 112.0, "x1": 255.0, "y1": 120.0},
 ]
 
 
@@ -54,8 +54,7 @@ def test_read_spec_toza_javob():
                         "naim": "Радиатор 10 секций",
                         "ed": "шт.",
                         "kol": "1",
-                        "davom_qatorlari": ["Радиатор", "10 секций"],
-                        "manba_qator_raqamlari": [1, 2],
+                        "manba": {"naim": ["w1", "w2", "w3"], "ed": "w4", "kol": "w5"},
                         "ishonch": "yuqori",
                     }
                 ],
@@ -73,7 +72,7 @@ def test_read_spec_toza_javob():
     qator = body["bolimlar"][0]["qatorlar"][0]
     assert qator["naim"] == "Радиатор 10 секций"
     assert qator["kol"] == "1"  # XOM MATN, son emas (T1)
-    assert qator["davom_qatorlari"] == ["Радиатор", "10 секций"]
+    assert qator["manba"] == {"naim": ["w1", "w2", "w3"], "ed": "w4", "kol": "w5"}
 
 
 def test_read_spec_kol_dual_qiymat_xom_saqlanadi():
@@ -255,18 +254,18 @@ def test_read_spec_naim_yoq_qator_rad_etiladi():
 
 def test_read_spec_ishonch_izoh_manba_qator_yoq_bolsa_standart_qiymat():
     """Faza-72, Band 2d (mijoz, 2026-09-12, chiqish-token tejash):
-    model endi 'ishonch'/'izoh'/'manba_qator_raqamlari' maydonlarini
-    ular kerak bo'lmaganda BUTUNLAY tushirib qoldiradi (JSON'da
-    kalitning o'zi yo'q) — server sxemasi buni standart qiymat bilan
-    qabul qilishi shart, rad etmasligi kerak."""
+    model endi 'ishonch'/'izoh' maydonlarini ular kerak bo'lmaganda
+    BUTUNLAY tushirib qoldiradi (JSON'da kalitning o'zi yo'q) — server
+    sxemasi buni standart qiymat bilan qabul qilishi shart, rad
+    etmasligi kerak. "manba" ham tushirilsa — bo'sh dict standart."""
     model_javobi = json.dumps({
         "sahifa": 1,
         "bolimlar": [{
             "nom": "X",
             "qatorlar": [{
                 "poz": "1", "naim": "Вентилятор", "tip": None, "ed": "шт.",
-                "kol": "1", "massa": None, "prim": None, "davom_qatorlari": [],
-                # "ishonch", "izoh", "manba_qator_raqamlari" — ATAYLAB yo'q
+                "kol": "1", "massa": None, "prim": None,
+                # "ishonch", "izoh", "manba" — ATAYLAB yo'q
             }],
         }],
         "otkazib_yuborilgan": [],
@@ -278,7 +277,7 @@ def test_read_spec_ishonch_izoh_manba_qator_yoq_bolsa_standart_qiymat():
     qator = resp.json()["bolimlar"][0]["qatorlar"][0]
     assert qator["ishonch"] == "yuqori"
     assert qator["izoh"] is None
-    assert qator["manba_qator_raqamlari"] == []
+    assert qator["manba"] == {}
 
 
 def test_read_spec_otkazib_yuborilgan_qisqa_sabab_kodi_qabul_qilinadi():

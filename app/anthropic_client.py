@@ -257,7 +257,34 @@ _READ_SPEC_PROMPT = """Senga qurilish/muhandislik loyihasining spetsifikatsiya s
 
 Bu — GOST uslubidagi ventilyatsiya/isitish/santexnika spetsifikatsiyasi (odatda ustunlar: Поз. / Наименование и техническая характеристика / Тип, марка / Код / Завод-изготовитель / Единица измерения / Количество / Масса единицы / Примечание — lekin aniq ustun tarkibi va tartibi fayldan-faylga farq qiladi, RASMDAN sarlavhani o'qib aniqla).
 
-═══ QATOR TUZILMASI — MUHIM ═══
+═══ MANBA-ID — ENG MUHIM QOIDA ═══
+
+Pastda "KIRISH MA'LUMOTLARI"da har SO'Z/KATAK o'zining o'zgarmas ID'si
+bilan beriladi (birinchi ustun — masalan "w42" yoki "P6"), undan keyin
+matni va koordinatasi keladi.
+
+Har chiqish qatori uchun "manba" degan JSON-obyekt qaytarishing SHART —
+har bir maydon (naim/tip/ed/kol/massa/prim) qaysi ANIQ ID(lar)dan
+olinganini ko'rsatadi:
+
+  "manba": {{"naim": ["w12","w13"], "tip": null, "ed": "w20", "kol": "w21", "massa": null, "prim": null}}
+
+QOIDALAR:
+- "naim" — ID RO'YXATI bo'lishi mumkin (pozitsiya bir nechta so'z/
+  katakdan yig'ilgan bo'lsa — qo'shni qatorlar HAM, qo'shni ustunlar
+  HAM bo'lishi mumkin). Boshqa maydonlar odatda BITTA ID (kerak bo'lsa
+  ro'yxat ham bo'lishi mumkin).
+- Maydon qiymati null BO'LMASA — o'sha maydon uchun ID(lar) HAM
+  bo'lishi SHART. Qiymat null bo'lsa — manba ID ham null (yoki umuman
+  yozmasang ham bo'ladi).
+- ID FAQAT pastda berilgan ro'yxatdan bo'lishi mumkin — o'zingdan ID
+  o'ylab topma, boshqa pozitsiyaning ID'sini "qarzga" olma (har bir ID
+  FAQAT o'ziga tegishli qiymatni tasdiqlash uchun ishlatiladi — bitta
+  ID'ni ikki xil pozitsiyada ishlatsang, IKKALASI HAM rad etiladi).
+- "naim"ga qo'shgan HAR BIR so'z manba-ID(lar) matnida SO'ZMA-SO'Z
+  bo'lishi kerak (fabrikatsiyaga qarshi himoya) — lekin "naim"ning o'zi
+  ID matnining AYNAN nusxasi bo'lishi shart emas (masalan siyoh
+  belgilarini/tinish belgilarini birlashtirib yozishing mumkin).
 
 Bitta pozitsiya bir NECHTA jismoniy qatorga bo'lingan bo'lishi mumkin:
   - Поз. + nom BIRINCHI qatorda, miqdor OXIRGI qatorda (masalan:
@@ -267,51 +294,25 @@ Bitta pozitsiya bir NECHTA jismoniy qatorga bo'lingan bo'lishi mumkin:
   - "1.1)", "1.2)", ">" bilan boshlangan qatorlar — OLDINGI pozitsiyaning
     tarkibi/davomi, YANGI pozitsiya EMAS
 
-Bunday holatlarda barcha jismoniy qatorlarni BITTA pozitsiyaga birlashtir,
-lekin HAR BIR jismoniy qator matnini "davom_qatorlari" ro'yxatida ALOHIDA,
-XOM holicha (o'zgartirmasdan) saqlab qo'y — bu keyinchalik manba bilan
-tekshirish uchun ishlatiladi.
+Bunday holatlarda barcha jismoniy qatorlarning nom-so'zlari/katak-
+ID'larini "naim"ga BIRLASHTIRIB yoz, va HAMMASINI "manba"["naim"]
+ro'yxatiga qo'sh (bironta ID'ni tushirib qoldirma — naim'dagi HAR BIR
+so'z qaysidir ID'dan kelishi kerak).
 
-"davom_qatorlari" — QAT'IY QOIDA: har bir element FAQAT o'sha jismoniy
-qatorning NOM (naim) ustuniga tegishli matn bo'lsin. Boshqa ustunlar
-(tip/marka, birlik, miqdor, massa) o'sha QATORDA birga yozilgan bo'lsa
-ham — ULARGA TEGMA, ular allaqachon "tip"/"ed"/"kol"/"massa" maydonlariga
-alohida chiqadi. Hech qachon bir nechta ustunni bitta "davom_qatorlari"
-elementiga birlashtirma ("|" yoki boshqa belgi bilan ham).
+  Misol (nom bitta katakda, uning davomi qo'shni katakda —
+  "Шаровой кран, DN" ID'si "w5", "15" ID'si "w6"):
+  TO'G'RI: "naim": "Шаровой кран, DN 15", "manba": {{"naim": ["w5","w6"]}}
 
-  NOTO'G'RI: "davom_qatorlari": ["Тепловентилятор | VR MINI (EC) | шт. | 5"]
+  Misol (tip/ed/kol BOSHQA ID'larga tegishli — ularga TEGMA, faqat
+  o'z maydoniga chiqar):
+  NOTO'G'RI: "naim": "Тепловентилятор VR MINI (EC) шт. 5", "manba": {{"naim": ["w1","w2","w3","w4"]}}
   TO'G'RI:   "naim": "Тепловентилятор", "tip": "VR MINI (EC)", "ed": "шт.", "kol": "5",
-             "davom_qatorlari": ["Тепловентилятор"]
+             "manba": {{"naim": ["w1"], "tip": "w2", "ed": "w3", "kol": "w4"}}
 
-  NOTO'G'RI: "davom_qatorlari": ["Вентилятор осевой", "N=0,016 kW; U=220 V; n=2 400 rpm | ВЕНТС 125 С | шт. | 1 | 0,75"]
-  TO'G'RI:   "naim": "Вентилятор осевой", "tip": "ВЕНТС 125 С", "ed": "шт.", "kol": "1", "massa": "0,75",
-             "davom_qatorlari": ["Вентилятор осевой", "L=100 m³/h; P=40 Pa;", "N=0,016 kW; U=220 V; n=2 400 rpm"]
-
-"davom_qatorlari" TO'LIQ bo'lishi SHART: "naim"ga qo'shgan HAR BIR
-manba-matn bo'lagi "davom_qatorlari"da HAM bo'lishi kerak (naim —
-mohiyatan shu ro'yxatning birlashmasi). Bironta bo'lakni naim'ga
-qo'shib, "davom_qatorlari"da UNUTIB QOLDIRMA. Bu QATORLARGA
-(jismoniy qatorlarga) TEGISHLI EMAS — "naim" bir nechta manba
-KATAGIDAN yig'ilgan bo'lsa, ular qo'shni QATORLAR bo'lishi HAM,
-QO'SHNI USTUNLAR bo'lishi HAM mumkin (masalan bitta katakda nom,
-qo'shni katakda uning davomi/raqami) — ikkala holatda ham HAR BIR
-manba-katak matni "davom_qatorlari"da ALOHIDA element bo'lsin.
-
-  NOTO'G'RI: "naim": "Наружная заслонка с приводом. Фильтр G4",
-             "davom_qatorlari": ["Фильтр G4"]  ← "Наружная заслонка..." yo'q
-  TO'G'RI:   "naim": "Наружная заслонка с приводом. Фильтр G4",
-             "davom_qatorlari": ["Наружная заслонка с приводом", "Фильтр G4"]
-
-  (QO'SHNI USTUN misoli — nom bitta katakda, uning raqami/davomi
-  QO'SHNI katakda: "Шаровой кран, DN" katagi + "15" katagi)
-  NOTO'G'RI: "naim": "Шаровой кран, DN 15", "davom_qatorlari": []
-  TO'G'RI:   "naim": "Шаровой кран, DN 15",
-             "davom_qatorlari": ["Шаровой кран, DN", "15"]
-
-"naim" va "davom_qatorlari" — FAQAT manbadagi XOM matn. Hech qanday
-o'z izohingni, meta-belgini yoki tushuntirishingni QO'SHMA (masalan
-"(davom)", "(davom keyingi sahifada)", "(taxminan)" kabi) — bunday
-izoh uchun ALOHIDA "izoh" maydoni bor, undan foydalan.
+"naim" — FAQAT manbadagi XOM matn (ID'lar matnidan yig'ilgan). Hech
+qanday o'z izohingni, meta-belgini yoki tushuntirishingni QO'SHMA
+(masalan "(davom)", "(davom keyingi sahifada)", "(taxminan)" kabi) —
+bunday izoh uchun ALOHIDA "izoh" maydoni bor, undan foydalan.
 
   NOTO'G'RI: "naim": "Приточно-вытяжная установка. Состав (davom): ... (davom keyingi sahifada)"
   TO'G'RI:   "naim": "Приточно-вытяжная установка. Состав: ...", "izoh": "pozitsiya keyingi sahifada davom etadi"
@@ -333,17 +334,14 @@ Nom BILAN tanish emas — quyidagilar pozitsiya EMAS:
   alohida qator bilan ajratilgan rus+ingliz tarjimasi, больница-uslubi
   spetsifikatsiyalarda tez-tez uchraydi) — bu FAQAT "naim"ga tegishli:
   "naim"ga FAQAT RUSCHA qismni yoz, inglizcha tarjimasini TASHLA.
-  Masalan "Дымоход, DN / Chimney, DN" -> naim="Дымоход, DN".
-  "davom_qatorlari" BUNGA BOSHQACHA — u har doim manba katagining
-  XOM, TO'LIQ matni (ruscha VA inglizcha qismi BIRGA, hech narsa
-  olib tashlanmasdan) — chunki "davom_qatorlari" tekshiruv uchun
-  (manba bilan so'zma-so'z solishtiriladi), "naim" esa ko'rsatish
-  uchun — ikkalasining maqsadi BOSHQA-BOSHQA.
+  Masalan "Дымоход, DN / Chimney, DN" -> naim="Дымоход, DN". "manba"["naim"]
+  esa BARIBIR o'sha ID'ni (ruscha VA inglizcha qism BIRGA turgan
+  bitta so'z/katak bo'lsa ham) ko'rsatsin — tekshiruv "naim"dagi HAR
+  BIR (ruscha) so'z shu ID matnida bormi deb tekshiradi, bu ID matnida
+  inglizcha qism HAM bo'lishi muammo EMAS.
 
-  Misol: manba katagi "Циркуляционный насос/Circulation pump, 118 м3/ч"
-  NOTO'G'RI: "davom_qatorlari": ["Циркуляционный насос, 118 м3/ч"]  ← inglizcha olib tashlangan, endi manba bilan SO'ZMA-SO'Z mos emas
-  TO'G'RI:   "naim": "Циркуляционный насос, 118 м3/ч",
-             "davom_qatorlari": ["Циркуляционный насос/Circulation pump, 118 м3/ч"]  ← manba XOM holicha
+  Misol: manba katagi (ID "w7") "Циркуляционный насос/Circulation pump, 118 м3/ч"
+  TO'G'RI: "naim": "Циркуляционный насос, 118 м3/ч", "manba": {{"naim": ["w7"]}}
 - "L=NNN м³/ч" — bu HAVO SARFI (расход воздуха), FIZIK UZUNLIK EMAS.
   Hech qachon uzunlik sifatida talqin qilma.
 - "Масса единицы, kg" ustuni — bu OG'IRLIK, miqdor (kol) EMAS. Alohida
@@ -390,22 +388,25 @@ TUSHIRIB QOLDIR (JSON kalitining o'zi ham bo'lmasin):
     "yuqori" deb qabul qilinadi (standart holat, aksariyat qatorlar).
   - "izoh": FAQAT aytadigan aniq sabab bo'lsa yoz. Bo'lmasa — umuman
     qo'shma (`null` deb ham yozma, kalitning o'zini tushir).
-  - "manba_qator_raqamlari": FAQAT "davom_qatorlari" to'ldirilgan
-    (pozitsiya bir necha jismoniy qatorga bo'lingan) holatda yoz.
-    Pozitsiya bitta qatorda bo'lsa — bu maydonni umuman qo'shma.
+
+"manba" maydoni HAR DOIM yoziladi (yuqoridagi ═══ MANBA-ID ═══
+bo'limiga qara) — bu maydonlar ichida null bo'lgan qismlarni tushirib
+qoldirmasa ham bo'ladi.
 
 "otkazib_yuborilgan"ning "sabab"i — QISQA KOD, erkin matn EMAS,
 quyidagi 6 tadan BIRI (boshqa variant yozma):
   "shtamp" | "sarlavha" | "bolim" | "eksplikatsiya" | "oqilmadi" | "boshqa"
 
 Misol (naim/tip/ed/kol/massa/prim MAJBURIY — bo'sh bo'lsa ham
-`null` yoz; "poz" ham har doim yoziladi, bo'lmasa `null`):
+`null` yoz; "poz" ham har doim yoziladi, bo'lmasa `null`; "w4"/"w5"
+kabi ID'lar — pastda "KIRISH MA'LUMOTLARI"dagi so'z-ID'lar, MISOL
+uchun, haqiqiy so'rovda o'sha so'rovning o'z ID'laridan foydalan):
 
-{{"sahifa":1,"bolimlar":[{{"nom":"Вентиляция / Воздуховоды","qatorlar":[{{"poz":"1","naim":"Радиатор отопительный биметаллический 10 секций","tip":null,"ed":"шт.","kol":"1","massa":null,"prim":null,"davom_qatorlari":["Радиатор отопительный биметаллический","10 секций"],"manba_qator_raqamlari":[4,5]}}]}}],"otkazib_yuborilgan":[{{"matn":"Изм. Кол.уч. Лист № докум. Подп. Дата","sabab":"shtamp"}}]}}
+{{"sahifa":1,"bolimlar":[{{"nom":"Вентиляция / Воздуховоды","qatorlar":[{{"poz":"1","naim":"Радиатор отопительный биметаллический 10 секций","tip":null,"ed":"шт.","kol":"1","massa":null,"prim":null,"manba":{{"naim":["w4","w5"],"ed":"w6","kol":"w7"}}}}]}}],"otkazib_yuborilgan":[{{"matn":"Изм. Кол.уч. Лист № докум. Подп. Дата","sabab":"shtamp"}}]}}
 
 (bu misolda "ishonch"/"izoh" YO'Q — chunki ishonch yuqori va izoh
-kerak emas edi; "manba_qator_raqamlari" BOR — chunki bu pozitsiya 2
-jismoniy qatorga bo'lingan, "davom_qatorlari" to'ldirilgan.)
+kerak emas edi; "manba"["naim"] IKKITA ID — chunki bu pozitsiya 2
+jismoniy qatorga bo'lingan.)
 
 ("sahifa": 1 — bu MISOL uchun, haqiqiy qiymatni pastda "KIRISH
 MA'LUMOTLARI"da berilgan aniq sahifa raqamidan ol.)
@@ -429,8 +430,9 @@ Sahifa raqami: {sahifa_raqami}
 Avvalgi sahifadan kontekst (agar bo'lsa — bo'lim/pozitsiya jadval
 davom etayotganini bildiradi): {avvalgi_kontekst}
 
-So'zlar (matn, x0, y0, x1, y1 — PDF koordinata, chapdan-o'ngga,
-yuqoridan-pastga):
+So'zlar (id, matn, x0, y0, x1, y1 — PDF koordinata, chapdan-o'ngga,
+yuqoridan-pastga). BIRINCHI ustun — so'z/katakning o'zgarmas ID'si,
+"manba" xaritasida AYNAN shu ID'larni ishlat:
 {sozlar}"""
 
 

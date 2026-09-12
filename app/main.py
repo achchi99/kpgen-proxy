@@ -149,6 +149,14 @@ _READ_SPEC_MAX_WORDS = 4000
 
 
 class ReadSpecWord(BaseModel):
+    # Faza-72, 4-bosqich (mijoz, 2026-09-12, MANBA BOG'LANISHI): har
+    # so'z/katakning o'zgarmas ID'si (Excel — katak koordinatasi,
+    # masalan "P6"; PDF — so'z-indeksi, masalan "w42") — kpgen tomonida
+    # (`ai/read_spec.py::excel_sozlar_qur`/`shadow.py::_pdf_sahifalar`)
+    # yaratiladi. Model har chiqish maydoni uchun ANIQ shu ID(lar)ni
+    # "manba" xaritasida ko'rsatishi SHART — tekshiruv (kpgen tomonida)
+    # ENDI shu ID orqali, sahifa/bo'lak bo'ylab qidirmasdan ishlaydi.
+    id: str = Field(min_length=1)
     matn: str = Field(min_length=1)
     x0: float
     y0: float
@@ -171,8 +179,15 @@ class ReadSpecRow(BaseModel):
     kol: str | None = None
     massa: str | None = None
     prim: str | None = None
-    davom_qatorlari: list[str] = Field(default_factory=list)
-    manba_qator_raqamlari: list[int] = Field(default_factory=list)
+    # Faza-72, 4-bosqich (mijoz, 2026-09-12, MANBA BOG'LANISHI): har
+    # maydon uchun ANIQ manba-ID(lar) — masalan
+    # {"naim": ["P6", "Q6"], "tip": null, "ed": "R6", "kol": "S6",
+    # "massa": null, "prim": null}. Eski `davom_qatorlari` (xom-matn
+    # ko'chirish) va `manba_qator_raqamlari` (taxminiy qator-raqami)
+    # BUTUNLAY ALMASHTIRILDI — endi "naim" bir nechta ID'dan (ko'p
+    # qatorli/ustunli pozitsiya) to'g'ridan-to'g'ri yig'ilishi mumkin,
+    # tekshiruv esa ANIQ shu ID'lardagi matnni o'qiydi.
+    manba: dict[str, str | list[str] | None] = Field(default_factory=dict)
     # Faza-72, Band 2d (mijoz, 2026-09-12, chiqish-token tejash): model
     # ENDI faqat "o'rta"/"past" bo'lsa yozadi — maydon yo'q bo'lsa
     # standart "yuqori" (aksariyat qatorlar shunday) deb qabul qilinadi.
@@ -308,8 +323,11 @@ def read_spec(payload: ReadSpecRequest):
             content={"error": "AI kunlik xarajat chegarasiga yetildi — ertaga qayta urinib ko'ring"},
         )
 
+    # Faza-72, 4-bosqich (mijoz, 2026-09-12, MANBA BOG'LANISHI): ID —
+    # BIRINCHI ustun, model har chiqish maydoni uchun aynan shu ID'ni
+    # "manba" xaritasida qaytarishi kerak.
     sozlar_tsv = "\n".join(
-        f"{w.matn}\t{w.x0:.1f}\t{w.y0:.1f}\t{w.x1:.1f}\t{w.y1:.1f}" for w in payload.sozlar
+        f"{w.id}\t{w.matn}\t{w.x0:.1f}\t{w.y0:.1f}\t{w.x1:.1f}\t{w.y1:.1f}" for w in payload.sozlar
     )
     _log.info(
         "read_spec: sahifa=%d, %d so'z qabul qilindi",
