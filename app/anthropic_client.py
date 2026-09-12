@@ -290,12 +290,23 @@ elementiga birlashtirma ("|" yoki boshqa belgi bilan ham).
 "davom_qatorlari" TO'LIQ bo'lishi SHART: "naim"ga qo'shgan HAR BIR
 manba-matn bo'lagi "davom_qatorlari"da HAM bo'lishi kerak (naim —
 mohiyatan shu ro'yxatning birlashmasi). Bironta bo'lakni naim'ga
-qo'shib, "davom_qatorlari"da UNUTIB QOLDIRMA.
+qo'shib, "davom_qatorlari"da UNUTIB QOLDIRMA. Bu QATORLARGA
+(jismoniy qatorlarga) TEGISHLI EMAS — "naim" bir nechta manba
+KATAGIDAN yig'ilgan bo'lsa, ular qo'shni QATORLAR bo'lishi HAM,
+QO'SHNI USTUNLAR bo'lishi HAM mumkin (masalan bitta katakda nom,
+qo'shni katakda uning davomi/raqami) — ikkala holatda ham HAR BIR
+manba-katak matni "davom_qatorlari"da ALOHIDA element bo'lsin.
 
   NOTO'G'RI: "naim": "Наружная заслонка с приводом. Фильтр G4",
              "davom_qatorlari": ["Фильтр G4"]  ← "Наружная заслонка..." yo'q
   TO'G'RI:   "naim": "Наружная заслонка с приводом. Фильтр G4",
              "davom_qatorlari": ["Наружная заслонка с приводом", "Фильтр G4"]
+
+  (QO'SHNI USTUN misoli — nom bitta katakda, uning raqami/davomi
+  QO'SHNI katakda: "Шаровой кран, DN" katagi + "15" katagi)
+  NOTO'G'RI: "naim": "Шаровой кран, DN 15", "davom_qatorlari": []
+  TO'G'RI:   "naim": "Шаровой кран, DN 15",
+             "davom_qatorlari": ["Шаровой кран, DN", "15"]
 
 "naim" va "davom_qatorlari" — FAQAT manbadagi XOM matn. Hech qanday
 o'z izohingni, meta-belgini yoki tushuntirishingni QO'SHMA (masalan
@@ -341,10 +352,17 @@ Nom BILAN tanish emas — quyidagilar pozitsiya EMAS:
 
 ═══ ISHONCHSIZ HOLAT ═══
 
-Agar biror maydonni (naim/tip/ed/kol/prim) ANIQ va ishonchli o'qiy
+Agar biror maydonni (tip/ed/kol/prim) ANIQ va ishonchli o'qiy
 olmasang — o'sha maydonga null qo'y, "izoh"da sababini qisqacha yoz
 (masalan "raqam noaniq, qora dog' bilan qoplangan"). TAXMIN QILMA —
 noaniq qiymatdan ko'ra bo'sh maydon yaxshiroq.
+
+"naim" HECH QACHON null bo'lmaydi — bu maydon HAR doim MAJBURIY,
+bo'sh bo'lmagan matn. Agar pozitsiyaning nomini (naim) umuman aniq
+o'qiy olmasang — bu qatorni "bolimlar"ga QO'SHMA, buning o'rniga
+"otkazib_yuborilgan"ga qo'sh: qanday matn ko'rinsa (qisman, noaniq
+bo'lsa ham) — xuddi shundayligicha "matn"ga, "sabab" sifatida
+"oqilmadi" yoz.
 
 ═══ JAVOB FORMATI — ZICH, MAYDON TEJOVCHI (MUHIM, xarajatga ta'sir qiladi) ═══
 
@@ -367,8 +385,8 @@ TUSHIRIB QOLDIR (JSON kalitining o'zi ham bo'lmasin):
     Pozitsiya bitta qatorda bo'lsa — bu maydonni umuman qo'shma.
 
 "otkazib_yuborilgan"ning "sabab"i — QISQA KOD, erkin matn EMAS,
-quyidagi 5 tadan BIRI (boshqa variant yozma):
-  "shtamp" | "sarlavha" | "bolim" | "eksplikatsiya" | "boshqa"
+quyidagi 6 tadan BIRI (boshqa variant yozma):
+  "shtamp" | "sarlavha" | "bolim" | "eksplikatsiya" | "oqilmadi" | "boshqa"
 
 Misol (naim/tip/ed/kol/massa/prim MAJBURIY — bo'sh bo'lsa ham
 `null` yoz; "poz" ham har doim yoziladi, bo'lmasa `null`):
