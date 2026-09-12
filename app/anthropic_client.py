@@ -72,6 +72,21 @@ def _call_anthropic(*, model: str, messages: list[dict], max_tokens: int) -> str
     if not response.content:
         raise ProxyError("Anthropic API bo'sh javob qaytardi", status_code=502)
 
+    # Faza-72, 3-bosqich yakunida topilgan haqiqiy xato (mijoz,
+    # 2026-09-12): javob `max_tokens` chegarasida KESILGAN bo'lishi
+    # mumkin (`stop_reason == "max_tokens"`) — bunday holatda matn
+    # ko'pincha yarim-JSON, `json.loads()` xato beradi, lekin bu ILGARI
+    # boshqa har qanday "model buzuq JSON qaytardi" holati bilan bir xil
+    # ko'rinardi (aniq sabab yo'qolardi). Endi ANIQ, alohida xabar bilan
+    # rad etiladi — chaqiruvchi tomon buni "javob kesildi, max_tokens
+    # kam" deb aniq izohlay oladi (masalan bo'lak hajmini kichraytirish
+    # kerakligini bildiradi).
+    if getattr(response, "stop_reason", None) == "max_tokens":
+        raise ProxyError(
+            f"Anthropic javobi max_tokens ({max_tokens}) chegarasida kesildi",
+            status_code=502,
+        )
+
     # Faza-45-topshiriq §B (mijoz, 2026-09-08, "xarajat nazorat qilinsin"):
     # har chaqiruv token-sarfi logga yoziladi — systemd journal orqali
     # ko'rinadi, alohida monitoring kerak emas.

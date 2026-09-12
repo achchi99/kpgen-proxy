@@ -25,7 +25,14 @@ DWG_SPEC_MAX_TOKENS = int(os.environ.get("KPGEN_DWG_SPEC_MAX_TOKENS", "4096"))
 # lekin bitta sahifada ko'p qator/bo'lim bo'lishi mumkin, shuning uchun
 # max_tokens dwg_spec'dan kattaroq standart bilan).
 READ_SPEC_MODEL_NAME = os.environ.get("KPGEN_READ_SPEC_MODEL", "claude-sonnet-5")
-READ_SPEC_MAX_TOKENS = int(os.environ.get("KPGEN_READ_SPEC_MAX_TOKENS", "8192"))
+# Faza-72-topshiriq, 3-bosqich yakunidan keyingi tuzatish (mijoz,
+# 2026-09-12): 8192 katta/zich Excel bo'laklar uchun YETARLI EMAS edi —
+# model javobi kesilib, buzuq JSON'ga aylanardi (proxy buni AVVAL
+# "hech narsa topilmadi" deb noto'g'ri talqin qilardi, endi main.py
+# xato sifatida qaytaradi — pastga qarang). 16384'ga oshirildi, bo'lak
+# hajmi HAM kichraytirildi (excel_qator_boluklariga_bol, kpgen
+# repo'sida) — ikkalasi birga.
+READ_SPEC_MAX_TOKENS = int(os.environ.get("KPGEN_READ_SPEC_MAX_TOKENS", "16384"))
 
 
 def _load_secrets_file(path: Path) -> None:

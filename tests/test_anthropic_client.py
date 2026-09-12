@@ -34,8 +34,8 @@ class _FakeTextBlock:
         self.text = text
 
 
-def _fake_client(content_blocks):
-    fake_response = SimpleNamespace(content=content_blocks, usage=_fake_usage())
+def _fake_client(content_blocks, stop_reason="end_turn"):
+    fake_response = SimpleNamespace(content=content_blocks, usage=_fake_usage(), stop_reason=stop_reason)
     fake_messages = MagicMock()
     fake_messages.create.return_value = fake_response
     return SimpleNamespace(messages=fake_messages)
@@ -93,3 +93,17 @@ def test_thinking_aniq_ochirilgan_holda_sorov_yuboriladi():
 
     _, kwargs = fake_client.messages.create.call_args
     assert kwargs["thinking"] == {"type": "disabled"}
+
+
+def test_max_tokens_chegarasida_kesilgan_javob_xato_beradi():
+    """Faza-72, 3-bosqich yakunida topilgan haqiqiy xato (mijoz,
+    2026-09-12): `stop_reason == "max_tokens"` bo'lsa, matn ko'pincha
+    yarim-JSON — bu ILGARI boshqa har qanday "buzuq JSON" bilan bir xil
+    ko'rinardi. Endi ANIQ, alohida ProxyError bilan rad etiladi."""
+    with patch("app.anthropic_client.get_api_key", return_value="fake-key"):
+        with patch(
+            "app.anthropic_client.anthropic.Anthropic",
+            return_value=_fake_client([_FakeTextBlock('{"sahifa": 1, "bolimlar": [{"nom"')], stop_reason="max_tokens"),
+        ):
+            with pytest.raises(ProxyError, match="max_tokens"):
+                ask_claude("test prompt")

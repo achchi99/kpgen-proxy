@@ -308,8 +308,27 @@ def read_spec(payload: ReadSpecRequest):
         data = json.loads(_extract_json_object(raw))
         parsed = ReadSpecResponse.model_validate(data)
     except (json.JSONDecodeError, ValidationError) as exc:
+        # Faza-72, 3-bosqich yakunida topilgan haqiqiy xato (mijoz,
+        # 2026-09-12): ILGARI bu yerda bo'sh ReadSpecResponse (ok=200)
+        # qaytarilardi — kpgen tomonida "hech narsa topilmadi" (haqiqiy,
+        # AI tasdiqlagan bo'sh natija) bilan "AI o'qiy olmadi" (JSON
+        # buzuq/kesilgan, ko'pincha max_tokens yetishmasligi tufayli)
+        # BIR-BIRIDAN AJRATILMAS edi — bu T3'ga (noaniqlik ochiq
+        # ko'rsatilishi shart, jimgina yo'qolmasligi) TO'G'RIDAN-TO'G'RI
+        # zid. Endi bu holat ANIQ xato (502) sifatida qaytariladi, xom
+        # javobning boshi (birinchi 500 belgi) diagnostika uchun
+        # qo'shiladi — `kpgen/ai/read_spec.py::oqi_sahifa()` buni
+        # `None` sifatida ko'radi (mavjud tarmoq-xato yo'li bilan bir
+        # xil), chaqiruvchi tomon "AI mavjud emas" deb izchil talqin
+        # qiladi, "AI hech narsa topmadi" bilan ARALASHTIRMAYDI.
         _log.warning("read_spec: model javobi JSON/schema xato: %s", exc)
-        return ReadSpecResponse(sahifa=payload.sahifa_raqami, bolimlar=[], otkazib_yuborilgan=[])
+        return JSONResponse(
+            status_code=502,
+            content={
+                "error": f"Model javobi JSON/schema sifatida buzuq: {exc}",
+                "xom_javob_boshi": raw[:500],
+            },
+        )
 
     qator_soni = sum(len(b.qatorlar) for b in parsed.bolimlar)
     _log.info("read_spec: %d bo'lim, %d qator qaytarilmoqda", len(parsed.bolimlar), qator_soni)

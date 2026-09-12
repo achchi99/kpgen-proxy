@@ -136,12 +136,19 @@ def test_read_spec_bosh_natija():
     assert resp.json()["bolimlar"] == []
 
 
-def test_read_spec_buzuq_json_bosh_natija_qaytaradi():
+def test_read_spec_buzuq_json_502_xato_qaytaradi():
+    """Faza-72, 3-bosqich yakunidan keyingi tuzatish (mijoz, 2026-09-12):
+    ILGARI bu holat 200+bo'sh natija bilan "hech narsa topilmadi"
+    (haqiqiy, AI tasdiqlagan natija) bilan ARALASHTIRILAR edi — endi
+    ANIQ xato (502), xom javob boshi bilan."""
     with patch("app.main.ask_claude_read_spec", return_value="Kechirasiz, o'qiy olmadim."):
         resp = client.post("/read_spec", json=_payload())
 
-    assert resp.status_code == 200
-    assert resp.json()["bolimlar"] == []
+    assert resp.status_code == 502
+    body = resp.json()
+    assert "error" in body
+    assert "xom_javob_boshi" in body
+    assert "Kechirasiz" in body["xom_javob_boshi"]
 
 
 def test_read_spec_markdown_kod_blokidagi_json_togri_oqiladi():
@@ -179,9 +186,9 @@ def test_read_spec_bosh_sozlar_royxati_422():
 
 
 def test_read_spec_naim_yoq_qator_rad_etiladi():
-    """Server-tomon sxema: `naim` majburiy — bo'lmasa shu qator
-    (butun javob emas) rad etiladi, ValidationError orqali bo'sh
-    natijaga tushadi (ikki qavatli himoya — kpgen tomonida ham)."""
+    """Server-tomon sxema: `naim` majburiy — bo'lmasa butun javob
+    ValidationError bilan rad etiladi (502) — ikki qavatli himoya
+    (kpgen tomonida ham, T2 mustaqil tekshiruvi orqali)."""
     model_javobi = json.dumps({
         "sahifa": 1,
         "bolimlar": [{"nom": "X", "qatorlar": [{"ed": "шт", "kol": "1"}]}],
@@ -190,5 +197,4 @@ def test_read_spec_naim_yoq_qator_rad_etiladi():
     with patch("app.main.ask_claude_read_spec", return_value=model_javobi):
         resp = client.post("/read_spec", json=_payload())
 
-    assert resp.status_code == 200
-    assert resp.json()["bolimlar"] == []
+    assert resp.status_code == 502
