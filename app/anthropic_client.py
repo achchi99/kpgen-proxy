@@ -33,9 +33,17 @@ class ProxyError(Exception):
         self.status_code = status_code
 
 
-def _call_anthropic(*, model: str, messages: list[dict], max_tokens: int) -> str:
+def _call_anthropic(
+    *, model: str, messages: list[dict], max_tokens: int, system: list[dict] | None = None
+) -> str:
     """Anthropic'ga chaqiruv — matn ham, vision ham shu orqali o'tadi,
     xato-turlari bir xil tarzda ProxyError'ga aylantiriladi (DRY).
+
+    `system` — Faza-72 Band 2 (prompt caching): berilsa, `cache_control`
+    belgilangan content-bloklar ro'yxati sifatida to'g'ridan-to'g'ri
+    Anthropic SDK'ga uzatiladi (`/read_spec`da ishlatiladi; boshqa
+    chaqiruvchilar — `ask_claude`/`ask_claude_vision`/`ask_claude_dwg_
+    spec` — bu parametrni ishlatmaydi, `None` qoladi).
 
     Raises:
         ProxyError: kalit yo'q/noto'g'ri, tarmoq xatosi, yoki Anthropic
@@ -59,12 +67,10 @@ def _call_anthropic(*, model: str, messages: list[dict], max_tokens: int) -> str
         # Bizga bu yerda fikrlash jarayoni emas, to'g'ridan-to'g'ri
         # tuzilgan javob kerak — shuning uchun thinking ANIQ o'chiriladi
         # (xarajat/vaqt ham shu bilan bashorat qilinadigan bo'ladi).
-        response = client.messages.create(
-            model=model,
-            max_tokens=max_tokens,
-            messages=messages,
-            thinking={"type": "disabled"},
-        )
+        create_kwargs = dict(model=model, max_tokens=max_tokens, messages=messages, thinking={"type": "disabled"})
+        if system is not None:
+            create_kwargs["system"] = system
+        response = client.messages.create(**create_kwargs)
     except anthropic.AuthenticationError as exc:
         raise ProxyError("Anthropic API kalit noto'g'ri yoki muddati o'tgan", status_code=500) from exc
     except anthropic.RateLimitError as exc:
@@ -347,7 +353,7 @@ kod blokisiz (```json yozma). Birinchi belgi javobingda darhol "{{"
 bo'lishi shart:
 
 {{
-  "sahifa": {sahifa_raqami},
+  "sahifa": 1,
   "bolimlar": [
     {{
       "nom": "Вентиляция / Воздуховоды",
@@ -373,10 +379,22 @@ bo'lishi shart:
   ]
 }}
 
-Agar sahifada hech qanday spetsifikatsiya jadvali topilmasa:
-{{"sahifa": {sahifa_raqami}, "bolimlar": [], "otkazib_yuborilgan": []}}
+("sahifa": 1 — bu MISOL uchun, haqiqiy qiymatni pastda "KIRISH
+MA'LUMOTLARI"da berilgan aniq sahifa raqamidan ol.)
 
-═══ KIRISH MA'LUMOTLARI ═══
+Agar sahifada hech qanday spetsifikatsiya jadvali topilmasa:
+{{"sahifa": <berilgan sahifa raqami>, "bolimlar": [], "otkazib_yuborilgan": []}}"""
+
+# Faza-72, Band 2 (prompt caching, mijoz, 2026-09-12): `_READ_SPEC_PROMPT`
+# (yuqorida) HAR so'rovda BAYT-BAYTIGA bir xil — `cache_control:
+# ephemeral` bilan belgilanib, `system` parametriga chiqariladi.
+# O'ZGARUVCHI qism (sahifa raqami, avvalgi kontekst, so'zlar — bular
+# har sahifa/bo'lakda farq qiladi, keshlanSA foyda bermaydi) ALOHIDA,
+# `messages`ning o'zida, KESHLANMAGAN holda qoladi. Bu ikki qismga
+# bo'lish — 3-bosqichda bitta YAXLIT stringga bog'liq bo'lgan hech
+# qanday testni buzmaydi (`ask_claude_read_spec()` chaqiruvchisi
+# uchun natija — model javobi — bir xil).
+_READ_SPEC_KIRISH_SHABLON = """═══ KIRISH MA'LUMOTLARI ═══
 
 Sahifa raqami: {sahifa_raqami}
 
@@ -400,6 +418,13 @@ def ask_claude_read_spec(
     yuboradi, xom JSON-matnni qaytaradi (parsing/tekshirish chaqiruvchi
     — `main.py` server-tomon shakl-tekshiruvi, ASOSIY manba-tekshiruvi
     esa kpgen tomonida, `ai/read_spec.py`)."""
+    system = [
+        {
+            "type": "text",
+            "text": _READ_SPEC_PROMPT.format(),
+            "cache_control": {"type": "ephemeral"},
+        }
+    ]
     messages = [
         {
             "role": "user",
@@ -414,7 +439,7 @@ def ask_claude_read_spec(
                 },
                 {
                     "type": "text",
-                    "text": _READ_SPEC_PROMPT.format(
+                    "text": _READ_SPEC_KIRISH_SHABLON.format(
                         sahifa_raqami=sahifa_raqami,
                         avvalgi_kontekst=avvalgi_kontekst,
                         sozlar=sozlar_tsv,
@@ -423,4 +448,4 @@ def ask_claude_read_spec(
             ],
         }
     ]
-    return _call_anthropic(model=READ_SPEC_MODEL_NAME, messages=messages, max_tokens=max_tokens)
+    return _call_anthropic(model=READ_SPEC_MODEL_NAME, messages=messages, max_tokens=max_tokens, system=system)
