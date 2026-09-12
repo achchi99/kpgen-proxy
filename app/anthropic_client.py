@@ -285,6 +285,17 @@ QOIDALAR:
   bo'lishi kerak (fabrikatsiyaga qarshi himoya) — lekin "naim"ning o'zi
   ID matnining AYNAN nusxasi bo'lishi shart emas (masalan siyoh
   belgilarini/tinish belgilarini birlashtirib yozishing mumkin).
+- "naim" FAQAT o'ziga ko'rsatilgan ID(lar)dagi so'zlardan tuzilsin.
+  Boshqa, O'XSHASH qatorlarda ko'rgan NAQSHINGGA (masalan "тип, DN
+  N" formatiga) qarab so'z QO'SHMA — har bir pozitsiya o'z manba
+  matniga qarab, MUSTAQIL yoziladi.
+
+  Misol (haqiqiy xato, live sinovda topilgan): boshqa qatorlarda
+  "Шаровой кран, DN 15" kabi "DN" bilan yozilgan bo'lsa-da, joriy
+  qator manba-katagida FAQAT "Манометр" va "15" bor, "DN" so'zi
+  UMUMAN YO'Q:
+  NOTO'G'RI: "naim": "Манометр, DN 15"  ← "DN" boshqa qatorlar naqshidan olingan, manbada yo'q
+  TO'G'RI:   "naim": "Манометр, 15"     ← faqat ID'lar matnidagi so'zlar
 
 Bitta pozitsiya bir NECHTA jismoniy qatorga bo'lingan bo'lishi mumkin:
   - Поз. + nom BIRINCHI qatorda, miqdor OXIRGI qatorda (masalan:
