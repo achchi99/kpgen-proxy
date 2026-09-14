@@ -19,7 +19,15 @@ VISION_MODEL_NAME = os.environ.get("KPGEN_VISION_MODEL", "claude-sonnet-5")
 DWG_SPEC_MODEL_NAME = os.environ.get("KPGEN_DWG_SPEC_MODEL", "claude-sonnet-5")
 # Bitta DWG so'rovi uchun maksimal chiqish tokeni — juda uzun (o'ylab
 # topilgan) javobning oldini oladi, xarajatni chegaralaydi.
-DWG_SPEC_MAX_TOKENS = int(os.environ.get("KPGEN_DWG_SPEC_MAX_TOKENS", "4096"))
+#
+# Jonli xato (mijoz, 2026-09-14, "900300...008.7" — matn-AI zaxira javobi
+# 502 bilan kesilgan): 4096 KAM bo'lib chiqdi — aynan shu saboq (READ_
+# SPEC_MAX_TOKENS'ning tarixiga qarang, pastda) endi bu yerga ham
+# qo'llanildi, o'sha 16384'ga TENGLASHTIRILDI (matn-AI zaxira — dense
+# GOST jadvali uchun oxirgi chora, read_spec bilan bir xil murakkablikda
+# ko'p pozitsiyali javob berishi mumkin — kamroq qiymat tanlashga asos
+# yo'q).
+DWG_SPEC_MAX_TOKENS = int(os.environ.get("KPGEN_DWG_SPEC_MAX_TOKENS", "16384"))
 # PDF/Excel sahifa-o'qish (/read_spec, Faza-72-topshiriq, mijoz,
 # 2026-09-11) — rasm + matn birga (vision bilan bir xil murakkablikda,
 # lekin bitta sahifada ko'p qator/bo'lim bo'lishi mumkin, shuning uchun
@@ -42,7 +50,13 @@ READ_SPEC_MAX_TOKENS = int(os.environ.get("KPGEN_READ_SPEC_MAX_TOKENS", "16384")
 # qilib, qoida yo'liga o'tadi. Xotirada saqlanadi (`kunlik_xarajat.py`) —
 # `kpgen-proxy` xizmati `ProtectSystem=strict`/`ReadOnlyPaths` bilan
 # ishlaydi, diskka yozish YO'Q (real production sinovida aniqlangan).
-AI_KUNLIK_XARAJAT_CHEGARA = float(os.environ.get("KPGEN_AI_KUNLIK_XARAJAT", "2.0"))
+#
+# Jonli xato (mijoz, 2026-09-14): $2/kun juda tor bo'lib chiqdi — bitta
+# kunda 4 ta DWG fayl (ikkitasi muvaffaqiyatli, 301+96 qator) byudjetni
+# tugatdi, keyingi ikkita fayl "AI kunlik xarajat chegarasiga yetildi"
+# bilan rad etildi. Mijoz aniq ko'rsatmasi: "sifat birinchi, xarajat
+# ikkinchi" (API'ga oyiga $20 to'laydi) — $2 dan $5 ga ko'tarildi.
+AI_KUNLIK_XARAJAT_CHEGARA = float(os.environ.get("KPGEN_AI_KUNLIK_XARAJAT", "5.0"))
 
 
 def _load_secrets_file(path: Path) -> None:
