@@ -137,6 +137,21 @@ def test_boshqa_400_xato_kredit_bilan_aralashtirilmaydi():
     assert exc_info.value.status_code == 502
 
 
+def test_400_xato_matni_toliq_xabarga_qoshiladi():
+    """Round-8-topshiriq (mijoz, 2026-09-19, jonli xato — 'блок 2:
+    ошибка ИИ (502): Anthropic API xato qaytardi: 400' — sabab hech
+    qayerda ko'rinmasdi). Endi Anthropic'ning o'z xato-matni ProxyError
+    xabariga qo'shiladi — chaqiruvchi tomon (kpgen «Отчёт») buni
+    ko'rishi kerak, faqat qattiq status-kod EMAS."""
+    exc = _real_api_status_error(400, "messages.0.content.0.image.source.base64.data: invalid base64 data")
+    with patch("app.anthropic_client.get_api_key", return_value="fake-key"):
+        with patch("app.anthropic_client.anthropic.Anthropic") as mock_client_cls:
+            mock_client_cls.return_value.messages.create.side_effect = exc
+            with pytest.raises(ProxyError, match="invalid base64 data") as exc_info:
+                ask_claude("test prompt")
+    assert exc_info.value.status_code == 502
+
+
 def test_max_tokens_chegarasida_kesilgan_javob_xato_beradi():
     """Faza-72, 3-bosqich yakunida topilgan haqiqiy xato (mijoz,
     2026-09-12): `stop_reason == "max_tokens"` bo'lsa, matn ko'pincha

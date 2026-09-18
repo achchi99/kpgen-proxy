@@ -95,7 +95,19 @@ def _call_anthropic(
                 "Anthropic hisobida kredit balansi yetarli emas — hisobni to'ldiring",
                 status_code=402,
             ) from exc
-        raise ProxyError(f"Anthropic API xato qaytardi: {exc.status_code}", status_code=502) from exc
+        # Round-8-topshiriq (mijoz, 2026-09-19, jonli xato — "блок 2:
+        # ошибка ИИ (502): Anthropic API xato qaytardi: 400"): xabar
+        # matni faqat status-kod bilan cheklangan edi, sababning o'zi
+        # (masalan "image exceeds 5 MB maximum", "invalid base64 data",
+        # boshqa noto'g'ri so'rov sababi) hech qayerga chiqmasdi — na
+        # logga, na chaqiruvchiga (kpgen'ning «Отчёт» varag'idagi
+        # bolak['sabab']). Endi ikkalasiga ham yoziladi (500 belgigacha,
+        # log to'lib ketmasin) — CLAUDE.md §14 (Faza-68) ruhi bilan bir
+        # xil: "biz ko'r holda ishlamaymiz" endi bu yo'lga ham tegishli.
+        _log.error("Anthropic API xato (status=%s): %s", exc.status_code, xabar_matni[:500])
+        raise ProxyError(
+            f"Anthropic API xato qaytardi: {exc.status_code} — {xabar_matni[:300]}", status_code=502
+        ) from exc
     except Exception as exc:  # kutilmagan holat — server baribir qulamasin
         raise ProxyError(f"Kutilmagan xato: {exc}", status_code=500) from exc
 
