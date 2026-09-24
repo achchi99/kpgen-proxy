@@ -84,3 +84,19 @@ _load_secrets_file(SECRETS_FILE)
 def get_api_key() -> str | None:
     """ANTHROPIC_API_KEY qiymatini qaytaradi, topilmasa None."""
     return os.environ.get("ANTHROPIC_API_KEY") or None
+
+
+# Xavfsizlik-auditi topilmasi (mijoz, 2026-09-24, kpgen CLAUDE.md §48
+# #8) — proxy endpoint'lari ilgari HECH QANDAY autentifikatsiya
+# talab qilmasdi (loopback-bog'lanish — `--host 127.0.0.1` — yagona
+# himoya qatlami edi, arxitektura qarzi). `KPGEN_PROXY_API_KEY` —
+# `kpgen`(desktop/web)+`kpgen-proxy` orasidagi umumiy, qo'lda
+# generatsiya qilingan maxfiy kalit (bir martalik `secrets.
+# token_urlsafe(32)`), `/etc/kpgen-secrets.env`ga `ANTHROPIC_API_KEY`
+# bilan bir qatorda qo'shiladi. **Sozlanmagan bo'lsa — tekshiruv
+# NOOP** (`main.py::_require_api_key()`ga qarang) — bosqichma-bosqich
+# deploy (kod avval, kalit keyin) xavfsiz bo'lishi uchun ATAYLAB shunday.
+def get_proxy_api_key() -> str | None:
+    """`KPGEN_PROXY_API_KEY` qiymatini qaytaradi, topilmasa None
+    (bu holatda `_require_api_key()` tekshiruvni o'tkazib yuboradi)."""
+    return os.environ.get("KPGEN_PROXY_API_KEY") or None

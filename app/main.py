@@ -12,12 +12,12 @@ import re
 from contextlib import asynccontextmanager
 from io import BytesIO
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.responses import JSONResponse
 from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel, Field, ValidationError
 
-from app import anthropic_client, kunlik_xarajat
+from app import anthropic_client, config, kunlik_xarajat
 from app.anthropic_client import ProxyError, ask_claude, ask_claude_dwg_spec, ask_claude_read_spec, ask_claude_vision
 
 # Faza-68-topshiriq (mijoz, 2026-09-11, "biz ko'r holda ishlayapmiz"):
@@ -44,6 +44,21 @@ async def _lifespan(app: FastAPI):
 
 
 app = FastAPI(title="kpgen-proxy", lifespan=_lifespan)
+
+
+def _require_api_key(x_kpgen_api_key: str | None = Header(default=None)) -> None:
+    """Xavfsizlik-auditi topilmasi (mijoz, 2026-09-24, kpgen CLAUDE.md
+    §48 #8) — barcha 4 pullik endpoint'ga (`/health`ga EMAS) `Depends()`
+    orqali qo'llanadi. `KPGEN_PROXY_API_KEY` sozlanmagan bo'lsa (proxy
+    kodi deploy qilingan-u, kalit hali generatsiya qilinmagan bosqich)
+    — tekshiruv NOOP, bosqichma-bosqich deploy xavfsiz bo'lishi uchun
+    ATAYLAB shunday (`config.py`dagi izohga qarang)."""
+    expected = config.get_proxy_api_key()
+    if not expected:
+        return
+    if x_kpgen_api_key != expected:
+        raise HTTPException(status_code=401, detail="Неверный или отсутствующий API-ключ")
+
 
 _NUMBER_RE = re.compile(r"^\d+([.,]\d+)?$")
 
@@ -238,7 +253,7 @@ def health() -> dict:
     return {"status": "ok"}
 
 
-@app.post("/classify", response_model=ClassifyResponse)
+@app.post("/classify", response_model=ClassifyResponse, dependencies=[Depends(_require_api_key)])
 def classify(payload: ClassifyRequest):
     try:
         category = ask_claude(_CLASSIFY_PROMPT.format(text=payload.text))
@@ -248,7 +263,7 @@ def classify(payload: ClassifyRequest):
     return ClassifyResponse(category=category)
 
 
-@app.post("/vision", response_model=VisionResponse)
+@app.post("/vision", response_model=VisionResponse, dependencies=[Depends(_require_api_key)])
 def vision(payload: VisionRequest):
     try:
         image_bytes = base64.b64decode(payload.image_base64, validate=True)
@@ -274,7 +289,7 @@ def vision(payload: VisionRequest):
     return VisionResponse(value=None, confidence="low")
 
 
-@app.post("/dwg_spec", response_model=DwgSpecResponse)
+@app.post("/dwg_spec", response_model=DwgSpecResponse, dependencies=[Depends(_require_api_key)])
 def dwg_spec(payload: DwgSpecRequest):
     """Faza-45-topshiriq §B: DXF'dan olingan xom matn+koordinata
     elementlaridan spetsifikatsiya jadvalini tiklaydi. Bu yerda FAQAT
@@ -302,7 +317,7 @@ def dwg_spec(payload: DwgSpecRequest):
     return parsed
 
 
-@app.post("/read_spec", response_model=ReadSpecResponse)
+@app.post("/read_spec", response_model=ReadSpecResponse, dependencies=[Depends(_require_api_key)])
 def read_spec(payload: ReadSpecRequest):
     """Faza-72-topshiriq: PDF/Excel spetsifikatsiya sahifasini (rasm +
     so'z-koordinata matni) AI yordamida tuzilmaga soladi. Bu yerda FAQAT
