@@ -29,6 +29,14 @@ TIMEOUT_SEC = 20
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
+# Jonli xato (mijoz, 2026-09-25): `/classify` §48 #8 bilan API-kalit
+# talab qila boshlagach, bu monitor skript (kpgen/kpgen-proxy'dan
+# TASHQARI, alohida server-skript) kalitsiz so'rov yuborib, har 30
+# daqiqada 401 olib, soxta-ogohlantirish yuborardi. Sabab — deploy
+# rejasi faqat worker+proxy unit'larini qamragan, bu skript
+# hisobga olinmagan edi (CLAUDE.md §48'ga qarang).
+PROXY_API_KEY = os.environ.get("KPGEN_PROXY_API_KEY")
+
 
 def load_state() -> dict:
     try:
@@ -62,7 +70,10 @@ def send_telegram(text: str) -> None:
 
 def check_proxy() -> tuple[bool, str | None]:
     body = json.dumps({"text": "ping"}).encode("utf-8")
-    req = urllib.request.Request(PROXY_URL, data=body, headers={"Content-Type": "application/json"})
+    headers = {"Content-Type": "application/json"}
+    if PROXY_API_KEY:
+        headers["X-KPGen-Api-Key"] = PROXY_API_KEY
+    req = urllib.request.Request(PROXY_URL, data=body, headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=TIMEOUT_SEC) as resp:
             if resp.status != 200:

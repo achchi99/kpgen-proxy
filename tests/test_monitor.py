@@ -109,3 +109,30 @@ def test_http_xato_kodi_xato_deb_hisoblanadi(tmp_path, monkeypatch):
 
     send.assert_called_once()
     assert "502" in send.call_args[0][0]
+
+
+class TestProxyApiKeyHeader:
+    """Jonli xato (mijoz, 2026-09-25) — §48 #8 bilan `/classify` API-kalit
+    talab qila boshlagach, bu skript kalitsiz so'rov yuborib 401 olardi."""
+
+    def test_kalit_sozlangan_bolsa_headerga_qoyiladi(self, monkeypatch):
+        monkeypatch.setattr(check_proxy, "PROXY_API_KEY", "sekret-123")
+        with patch(
+            "monitor.check_proxy.urllib.request.urlopen", return_value=_fake_ok_response()
+        ) as urlopen:
+            check_proxy.check_proxy()
+
+        req = urlopen.call_args[0][0]
+        assert req.headers.get("X-kpgen-api-key") == "sekret-123"
+
+    def test_kalit_sozlanmaganda_header_yoq(self, monkeypatch):
+        """Regressiya-qulf — kalit sozlanmagan (production'gacha bo'lgan
+        eski) holatda avvalgidek header'siz so'rov yuboriladi."""
+        monkeypatch.setattr(check_proxy, "PROXY_API_KEY", None)
+        with patch(
+            "monitor.check_proxy.urllib.request.urlopen", return_value=_fake_ok_response()
+        ) as urlopen:
+            check_proxy.check_proxy()
+
+        req = urlopen.call_args[0][0]
+        assert "X-kpgen-api-key" not in req.headers
