@@ -16,7 +16,7 @@ import anthropic
 import httpx2
 import pytest
 
-from app.anthropic_client import ProxyError, ask_claude
+from app.anthropic_client import ProxyError, ask_claude, ask_claude_read_spec, ask_claude_vision
 
 
 def _fake_usage():
@@ -164,3 +164,45 @@ def test_max_tokens_chegarasida_kesilgan_javob_xato_beradi():
         ):
             with pytest.raises(ProxyError, match="max_tokens"):
                 ask_claude("test prompt")
+
+
+# ---------------------------------------------------------------------------
+# Round-10-topshiriq (mijoz, 2026-09-28) — o'qish-o'zgaruvchanligi tekshiruvi:
+# vision-chaqiruvlar (`ask_claude_vision`, `ask_claude_read_spec`) endi
+# `temperature=0` bilan yuboriladi, matn-chaqiruvlar (`ask_claude`) esa
+# o'zgarishsiz (standart, `temperature` umuman uzatilmaydi).
+# ---------------------------------------------------------------------------
+
+
+def test_vision_chaqiruvi_temperature_nol_bilan_yuboriladi():
+    fake_client = _fake_client([_FakeTextBlock("39")])
+    with patch("app.anthropic_client.get_api_key", return_value="fake-key"):
+        with patch("app.anthropic_client.anthropic.Anthropic", return_value=fake_client):
+            ask_claude_vision("aGVsbG8=", "Кол-во, 500x150")
+
+    _, kwargs = fake_client.messages.create.call_args
+    assert kwargs["temperature"] == 0
+
+
+def test_read_spec_chaqiruvi_temperature_nol_bilan_yuboriladi():
+    fake_client = _fake_client([_FakeTextBlock('{"sahifa":1,"bolimlar":[],"otkazib_yuborilgan":[]}')])
+    with patch("app.anthropic_client.get_api_key", return_value="fake-key"):
+        with patch("app.anthropic_client.anthropic.Anthropic", return_value=fake_client):
+            ask_claude_read_spec("aGVsbG8=", "w1\tтест\t0\t0\t10\t10", sahifa_raqami=1)
+
+    _, kwargs = fake_client.messages.create.call_args
+    assert kwargs["temperature"] == 0
+
+
+def test_matn_chaqiruvi_temperature_uzatilmaydi():
+    """Regressiya-qulf: `ask_claude()` (vision EMAS, oddiy klassifikatsiya)
+    `temperature` HECH QACHON `create_kwargs`ga qo'shilmasligi kerak —
+    `_call_anthropic()`ning standart holati (`temperature=None`) API'ning
+    o'z standart qiymatini (1.0) ishlatishga qoldiradi."""
+    fake_client = _fake_client([_FakeTextBlock("Вентиляторы")])
+    with patch("app.anthropic_client.get_api_key", return_value="fake-key"):
+        with patch("app.anthropic_client.anthropic.Anthropic", return_value=fake_client):
+            ask_claude("test prompt")
+
+    _, kwargs = fake_client.messages.create.call_args
+    assert "temperature" not in kwargs
