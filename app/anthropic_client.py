@@ -34,12 +34,7 @@ class ProxyError(Exception):
 
 
 def _call_anthropic(
-    *,
-    model: str,
-    messages: list[dict],
-    max_tokens: int,
-    system: list[dict] | None = None,
-    temperature: float | None = None,
+    *, model: str, messages: list[dict], max_tokens: int, system: list[dict] | None = None
 ) -> str:
     """Anthropic'ga chaqiruv — matn ham, vision ham shu orqali o'tadi,
     xato-turlari bir xil tarzda ProxyError'ga aylantiriladi (DRY).
@@ -49,17 +44,6 @@ def _call_anthropic(
     Anthropic SDK'ga uzatiladi (`/read_spec`da ishlatiladi; boshqa
     chaqiruvchilar — `ask_claude`/`ask_claude_vision`/`ask_claude_dwg_
     spec` — bu parametrni ishlatmaydi, `None` qoladi).
-
-    `temperature` — Round-10-topshiriq, o'qish-o'zgaruvchanligi
-    tekshiruvi (mijoz, 2026-09-28): `None` bo'lsa Anthropic API'ning
-    standart qiymati (1.0) qo'llanadi — chaqiruvchi ANIQ bermasa
-    hech narsa o'zgarmaydi. `thinking={"type":"disabled"}` bilan
-    BIRGA berilganda hech qanday cheklov yo'q (extended thinking
-    YOQILGAN bo'lsagina temperature'ni API majburan 1'ga tenglaydi —
-    bu yerda thinking har doim o'chirilgan). Agar model/API baribir
-    rad etsa — bu funksiya BOSHQA xatolar bilan bir xil yo'ldan
-    (`anthropic.APIStatusError` -> aniq `ProxyError` xabari) o'tadi,
-    jim yutilmaydi.
 
     Raises:
         ProxyError: kalit yo'q/noto'g'ri, tarmoq xatosi, yoki Anthropic
@@ -86,8 +70,6 @@ def _call_anthropic(
         create_kwargs = dict(model=model, max_tokens=max_tokens, messages=messages, thinking={"type": "disabled"})
         if system is not None:
             create_kwargs["system"] = system
-        if temperature is not None:
-            create_kwargs["temperature"] = temperature
         response = client.messages.create(**create_kwargs)
     except anthropic.AuthenticationError as exc:
         raise ProxyError("Anthropic API kalit noto'g'ri yoki muddati o'tgan", status_code=500) from exc
@@ -206,12 +188,6 @@ def ask_claude_vision(image_base64: str, context: str, *, max_tokens: int = 20) 
 
     Javobni RAQAM/`null` ekanligini tekshirish — bu funksiya EMAS,
     chaqiruvchi (`main.py`) vazifasi (server-tomon qat'iy validatsiya).
-
-    `temperature=0` — Round-10-topshiriq (mijoz, 2026-09-28): vision-
-    chaqiruvlarning barchasi standart (1.0) temperatura bilan ishlagan,
-    bir xil rasm bir xil savol bilan HAR SAFAR bir xil javob berishi
-    KAFOLATLANMAGAN edi. 0 — bitta raqam o'qishda ("39" yoki "null")
-    ANIQLIK muhim, ijodkorlik SHART EMAS.
     """
     messages = [
         {
@@ -232,7 +208,7 @@ def ask_claude_vision(image_base64: str, context: str, *, max_tokens: int = 20) 
             ],
         }
     ]
-    return _call_anthropic(model=VISION_MODEL_NAME, messages=messages, max_tokens=max_tokens, temperature=0)
+    return _call_anthropic(model=VISION_MODEL_NAME, messages=messages, max_tokens=max_tokens)
 
 
 # Faza-45-topshiriq §B (mijoz, 2026-09-08): DWG'da determinal o'qish
@@ -503,13 +479,7 @@ def ask_claude_read_spec(
     """Sahifa rasmi (base64 PNG) + so'z-koordinata matnini modelga
     yuboradi, xom JSON-matnni qaytaradi (parsing/tekshirish chaqiruvchi
     — `main.py` server-tomon shakl-tekshiruvi, ASOSIY manba-tekshiruvi
-    esa kpgen tomonida, `ai/read_spec.py`).
-
-    `temperature=0` — Round-10-topshiriq (mijoz, 2026-09-28, real DWG
-    o'qish-o'zgaruvchanligi o'lchandi: bir xil fayl 4 marta o'qilganda
-    121/126/127/124 qator chiqdi). Bu — asosiy vision-yo'l (DWG/PDF
-    spetsifikatsiya o'qish), tarqoqlikni qisqartirish uchun ENG BIRINCHI
-    qadam."""
+    esa kpgen tomonida, `ai/read_spec.py`)."""
     system = [
         {
             "type": "text",
@@ -540,6 +510,4 @@ def ask_claude_read_spec(
             ],
         }
     ]
-    return _call_anthropic(
-        model=READ_SPEC_MODEL_NAME, messages=messages, max_tokens=max_tokens, system=system, temperature=0
-    )
+    return _call_anthropic(model=READ_SPEC_MODEL_NAME, messages=messages, max_tokens=max_tokens, system=system)
