@@ -1,0 +1,10 @@
+[Unit]
+Description=Har 4 soatda kpgen-proxy monitoring (/vision, /read_spec)
+
+[Timer]
+# 00:07, 04:07, 08:07, ... — 30 daqiqalik /classify timer'i bilan to'qnashmaydi
+OnCalendar=*-*-* 00/4:07:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

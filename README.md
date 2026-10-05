@@ -63,27 +63,30 @@ bilan) qo'yish tavsiya etiladi — bu fayl buni o'z ichiga olmaydi.
 
 `/health` faqat jarayon tirikligini bildiradi — Anthropic bilan real
 bog'lanishni EMAS (2026-09-05: proxy 3 kun ishlamay turgan, health esa
-200 qaytargani uchun sezilmagan). `monitor/` papkasi buni tuzatadi:
-har 30 daqiqada `/classify`ga haqiqiy so'rov yuboradi (bu `/vision`
-bilan bir xil `_call_anthropic()` orqali o'tadi, shuning uchun arzon
-matn-so'rov bilan ham real Anthropic-ulanish tekshiriladi). Ketma-ket
-xatoda faqat birinchi aniqlanganda va keyin har 3 soatda bitta xabar
-(spam emas), tuzalganda bitta "tuzaldi" xabari.
+200 qaytargani uchun sezilmagan). `monitor/check_proxy.py` haqiqiy
+so'rov yuboradi:
 
-O'rnatish:
+| Endpoint | Model | Chastota | Taxminiy narx |
+|---|---|---|---|
+| `/classify` | haiku | har 30 daqiqa (`kpgen-proxy-monitor.timer`) | ~0 |
+| `/vision`, `/read_spec` | sonnet (sintetik 100x100 PNG) | har 4 soat, 00:07, 04:07, ... (`kpgen-proxy-monitor-ai.timer`) | ~$0.012/yurish, ~$0.07/kun |
 
-1. `monitor/check_proxy.py` → `/opt/kpgen-proxy-monitor/check_proxy.py`
-2. `monitor/kpgen-proxy-monitor.service` va `.timer` →
-   `/etc/systemd/system/`
-3. `monitor/kpgen-monitor-secrets.env.example` namunasi bo'yicha
-   `/etc/kpgen-monitor-secrets.env` yarating (`chmod 600 root:root`),
-   `TELEGRAM_BOT_TOKEN` va `TELEGRAM_CHAT_ID` bilan
-4.
-   ```bash
-   sudo systemctl daemon-reload
-   sudo systemctl enable --now kpgen-proxy-monitor.timer
-   sudo systemctl list-timers kpgen-proxy-monitor.timer
-   ```
+Tekshiriladi: HTTP 200 va javob tuzilishi (mazmun emas). Xato bo'lsa 60 s
+dan keyin bitta qayta urinish; ikkalasi ham yiqilsa Telegram xabari
+(endpoint, status kodi, sirsiz qisqa xato matni), keyin har 3 soatda
+eslatma, tuzalganda "TUZALDI". Kunlik AI limiti 429 si xato emas — kuniga
+bir marta ma'lumot xabari (monitor so'rovlari umumiy kunlik hisobga kiradi).
 
-Qo'lda sinash: `sudo systemctl start kpgen-proxy-monitor.service` (natija
-`journalctl -u kpgen-proxy-monitor.service -n 20`da ko'rinadi).
+O'rnatish (server, root): `/etc/kpgen-monitor-secrets.env` ni
+`monitor/kpgen-monitor-secrets.env.example` bo'yicha yarating
+(`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `KPGEN_PROXY_API_KEY`; `chmod 600`),
+so'ng:
+
+```bash
+sudo bash deploy/install_monitor.sh
+```
+
+Skript qayta ishga tushirilsa zarar bermaydi; `KPGEN_PROXY_API_KEY` yo'q
+bo'lsa aniq xato bilan to'xtaydi; oxirida birinchi yurishni bajarib
+natijani ko'rsatadi. Sozlamani o'rnatmasdan tekshirish:
+`bash deploy/install_monitor.sh --check-env`.

@@ -1,0 +1,11 @@
+[Unit]
+Description=kpgen-proxy monitoring: /vision va /read_spec (sintetik rasm, ~$0.012/yurish)
+After=network-online.target kpgen-proxy.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/kpgen-monitor-secrets.env
+ExecStart=/usr/bin/python3 /opt/kpgen-proxy-monitor/check_proxy.py vision read_spec
+# har endpoint: 60 s timeout + 60 s kutish + 60 s qayta urinish
+TimeoutStartSec=600
