@@ -36,6 +36,24 @@ class ProxyError(Exception):
 def _call_anthropic(
     *, model: str, messages: list[dict], max_tokens: int, system: list[dict] | None = None
 ) -> str:
+    response = _javob_ol(
+        dict(model=model, max_tokens=max_tokens, messages=messages, system=system), max_tokens=max_tokens
+    )
+    # Faza-45-topshiriq §B (haqiqiy xato, Мимар sinovida topilgan, 2026-
+    # 09-08): `content[0]` HAR DOIM matn-blok deb taxmin qilingan edi —
+    # lekin murakkab so'rovlarda (masalan uzun DWG-elementlar ro'yxati)
+    # model avtomatik "extended thinking" ishlatishi mumkin, natijada
+    # `content[0]` — `.text` MAYDONI YO'Q `ThinkingBlock`. Endi ro'yxatdan
+    # BIRINCHI haqiqiy matn-blok qidiriladi (qaysi index'da bo'lishidan
+    # qat'i nazar).
+    for block in response.content:
+        text = getattr(block, "text", None)
+        if text is not None:
+            return text.strip()
+    raise ProxyError("Anthropic API javobida matn-blok topilmadi", status_code=502)
+
+
+def _javob_ol(kwargs: dict, *, max_tokens: int, timeout: float | None = None, max_retries: int | None = None):
     """Anthropic'ga chaqiruv — matn ham, vision ham shu orqali o'tadi,
     xato-turlari bir xil tarzda ProxyError'ga aylantiriladi (DRY).
 
@@ -56,7 +74,14 @@ def _call_anthropic(
             status_code=500,
         )
 
-    client = anthropic.Anthropic(api_key=api_key)
+    client_kwargs = {"api_key": api_key}
+    # A8a (/loyiha_tavsiya): so'rov vaqti chegaralangan — SDK'ning standart
+    # qayta urinishlari (2 marta) chegarani uch baravar oshirib yubormasin.
+    if timeout is not None:
+        client_kwargs["timeout"] = timeout
+    if max_retries is not None:
+        client_kwargs["max_retries"] = max_retries
+    client = anthropic.Anthropic(**client_kwargs)
 
     try:
         # Faza-45-topshiriq §B (haqiqiy xato #2, Мимар sinovida topilgan,
@@ -67,14 +92,16 @@ def _call_anthropic(
         # Bizga bu yerda fikrlash jarayoni emas, to'g'ridan-to'g'ri
         # tuzilgan javob kerak — shuning uchun thinking ANIQ o'chiriladi
         # (xarajat/vaqt ham shu bilan bashorat qilinadigan bo'ladi).
-        create_kwargs = dict(model=model, max_tokens=max_tokens, messages=messages, thinking={"type": "disabled"})
-        if system is not None:
-            create_kwargs["system"] = system
+        create_kwargs = {k: v for k, v in kwargs.items() if v is not None}
+        create_kwargs["thinking"] = {"type": "disabled"}
         response = client.messages.create(**create_kwargs)
     except anthropic.AuthenticationError as exc:
         raise ProxyError("Anthropic API kalit noto'g'ri yoki muddati o'tgan", status_code=500) from exc
     except anthropic.RateLimitError as exc:
         raise ProxyError("Anthropic API so'rov chegarasi tugadi, keyinroq urinib ko'ring", status_code=429) from exc
+    except anthropic.APITimeoutError as exc:
+        # APIConnectionError'ning bola-sinfi — undan OLDIN ushlanadi.
+        raise ProxyError("Anthropic API javobi vaqt chegarasida kelmadi (timeout)", status_code=504) from exc
     except anthropic.APIConnectionError as exc:
         raise ProxyError("Anthropic API bilan bog'lanib bo'lmadi (tarmoq xatosi)", status_code=502) from exc
     except anthropic.APIStatusError as exc:
@@ -136,31 +163,50 @@ def _call_anthropic(
     if usage is not None:
         _log.info(
             "anthropic chaqiruvi: model=%s in_tokens=%s out_tokens=%s",
-            model, usage.input_tokens, usage.output_tokens,
+            kwargs["model"], usage.input_tokens, usage.output_tokens,
         )
         global LAST_USAGE
-        LAST_USAGE = {
-            "model": model,
-            "input_tokens": usage.input_tokens,
-            "output_tokens": usage.output_tokens,
-            # Faza-72, Band 2 (prompt caching) — mavjud bo'lsa qo'shiladi,
-            # bo'lmasa 0 (SDK versiyasi/keshlanmagan so'rov).
-            "cache_read_input_tokens": getattr(usage, "cache_read_input_tokens", None) or 0,
-            "cache_creation_input_tokens": getattr(usage, "cache_creation_input_tokens", None) or 0,
-        }
+        LAST_USAGE = usage_dict(kwargs["model"], usage)
+    return response
 
-    # Faza-45-topshiriq §B (haqiqiy xato, Мимар sinovida topilgan, 2026-
-    # 09-08): `content[0]` HAR DOIM matn-blok deb taxmin qilingan edi —
-    # lekin murakkab so'rovlarda (masalan uzun DWG-elementlar ro'yxati)
-    # model avtomatik "extended thinking" ishlatishi mumkin, natijada
-    # `content[0]` — `.text` MAYDONI YO'Q `ThinkingBlock`. Endi ro'yxatdan
-    # BIRINCHI haqiqiy matn-blok qidiriladi (qaysi index'da bo'lishidan
-    # qat'i nazar).
+
+def usage_dict(model: str, usage) -> dict:
+    return {
+        "model": model,
+        "input_tokens": usage.input_tokens,
+        "output_tokens": usage.output_tokens,
+        # Faza-72, Band 2 (prompt caching) — mavjud bo'lsa qo'shiladi,
+        # bo'lmasa 0 (SDK versiyasi/keshlanmagan so'rov).
+        "cache_read_input_tokens": getattr(usage, "cache_read_input_tokens", None) or 0,
+        "cache_creation_input_tokens": getattr(usage, "cache_creation_input_tokens", None) or 0,
+    }
+
+
+def ask_claude_tool(
+    *, model: str, system: str, content: list[dict], tool: dict, max_tokens: int, timeout: float
+) -> tuple[object, dict | None]:
+    """A8a (/loyiha_tavsiya): javob MAJBURIY bitta tool-chaqiruv (`tool_choice` — aynan shu tool) — tuzilgan
+    javob. → (tool `input`i (tekshirilmagan), usage dict | None). Tool-blok yo'q bo'lsa — ProxyError 502.
+    usage global `LAST_USAGE` orqali emas, javobning o'zidan (parallel so'rovlar bir-birining narxini olmasin)."""
+    response = _javob_ol(
+        dict(
+            model=model,
+            max_tokens=max_tokens,
+            system=system,
+            messages=[{"role": "user", "content": content}],
+            tools=[tool],
+            tool_choice={"type": "tool", "name": tool["name"]},
+        ),
+        max_tokens=max_tokens,
+        timeout=timeout,
+        max_retries=0,
+    )
+    usage = getattr(response, "usage", None)
+    usage_d = usage_dict(model, usage) if usage is not None else None
     for block in response.content:
-        text = getattr(block, "text", None)
-        if text is not None:
-            return text.strip()
-    raise ProxyError("Anthropic API javobida matn-blok topilmadi", status_code=502)
+        if getattr(block, "type", None) == "tool_use" and getattr(block, "name", None) == tool["name"]:
+            return block.input, usage_d
+    raise ProxyError("Anthropic API javobida tool-chaqiruv topilmadi", status_code=502)
 
 
 def ask_claude(prompt: str, *, max_tokens: int = 100) -> str:

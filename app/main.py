@@ -17,7 +17,7 @@ from fastapi.responses import JSONResponse
 from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel, Field, ValidationError
 
-from app import anthropic_client, config, kunlik_xarajat
+from app import anthropic_client, config, kunlik_xarajat, loyiha_tavsiya
 from app.anthropic_client import ProxyError, ask_claude, ask_claude_dwg_spec, ask_claude_read_spec, ask_claude_vision
 
 # Faza-68-topshiriq (mijoz, 2026-09-11, "biz ko'r holda ishlayapmiz"):
@@ -58,6 +58,10 @@ def _require_api_key(x_kpgen_api_key: str | None = Header(default=None)) -> None
         return
     if x_kpgen_api_key != expected:
         raise HTTPException(status_code=401, detail="Неверный или отсутствующий API-ключ")
+
+
+# A8a: /loyiha_tavsiya (alohida modul) — boshqa pullik endpointlar bilan bir xil auth.
+app.include_router(loyiha_tavsiya.router, dependencies=[Depends(_require_api_key)])
 
 
 _NUMBER_RE = re.compile(r"^\d+([.,]\d+)?$")
