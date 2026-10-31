@@ -100,3 +100,15 @@ def get_proxy_api_key() -> str | None:
     """`KPGEN_PROXY_API_KEY` qiymatini qaytaradi, topilmasa None
     (bu holatda `_require_api_key()` tekshiruvni o'tkazib yuboradi)."""
     return os.environ.get("KPGEN_PROXY_API_KEY") or None
+
+
+# A8a (kpgen «Проект вентиляции», 2026-10-31): /loyiha_tavsiya — xona vazifasi (matn) va sanuzel jihozlari (rasm)
+# bo'yicha TAKLIF. Model kpgen so'rovidagi `model` maydonidan EMAS, shu yerdan (mijoz qimmat model tanlay olmasin).
+TAVSIYA_MODEL_NAME = os.environ.get("KPGEN_TAVSIYA_MODEL", "claude-sonnet-5")
+# Anthropic chaqiruvi vaqt chegarasi (s, qayta urinishsiz) — kpgen klienti timeout'idan (30 / 60 s) kichik.
+TAVSIYA_TIMEOUT_MATN = float(os.environ.get("KPGEN_TAVSIYA_TIMEOUT_MATN", "25"))
+TAVSIYA_TIMEOUT_RASM = float(os.environ.get("KPGEN_TAVSIYA_TIMEOUT_RASM", "50"))
+# Rasm chegarasi (oshsa — 413): dekodlangan bayt va har tomon pikselda. 2000 px — kpgen kesimi varaq tomonining
+# ≤ 25 % i (150 dpi'da A0 varaqdan ≈ 1754 px); Anthropic kattaroq rasmni o'zi kichraytiradi.
+TAVSIYA_MAX_RASM_BAYT = int(os.environ.get("KPGEN_TAVSIYA_MAX_RASM_BAYT", str(2 * 1024 * 1024)))
+TAVSIYA_MAX_RASM_TOMON = int(os.environ.get("KPGEN_TAVSIYA_MAX_RASM_TOMON", "2000"))

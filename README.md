@@ -41,6 +41,21 @@ pytest tests/ -v
 Testlar HAQIQIY tarmoqqa chiqmaydi (`ask_claude`/`ask_claude_vision`
 mock qilinadi) — API kalit talab qilinmaydi, xarajatsiz.
 
+## `/loyiha_tavsiya` (kpgen A8a — «Проект вентиляции»)
+
+Xona vazifasi (matn) va sanuzel jihozlari (xona kesimi rasmi) bo'yicha AI TAKLIFI — kpgen
+`kpgen/ai/xona_tavsiya.py` klienti bilan kontrakt (`app/loyiha_tavsiya.py` docstring'i):
+
+| `vazifa` | Kirish | Javob |
+|---|---|---|
+| `xona_vazifasi` | `xona_nomi`, `variantlar: [{kalit, nomi}]` | `{vazifa: kalit\|null, dalil, narx}` |
+| `sanuzel_jihozlari` | `xona_nomi`, `jihozlar`, `image_base64` (PNG/JPEG) | `{jihozlar: {unitaz\|vanna\|dush\|rakovina: {holat: topildi\|yoq\|nomalum, joy: [x,y]\|null}}, narx}` |
+
+Model — `KPGEN_TAVSIYA_MODEL` (sukut `claude-sonnet-5`; so'rovdagi `model` e'tiborsiz), javob — majburiy
+tool-chaqiruv, server sxemasi bilan tekshiriladi (mos emas — 502). Noma'lum `vazifa` — 400, rasm > 2 MB yoki
+> 2000 px — 413, kunlik limit — 429, Anthropic timeout — 504. Rasm va xona nomi saqlanmaydi, logga yozilmaydi
+(logda: vazifa, holat, hajm, narx, davomiylik).
+
 ## Serverga o'rnatish (systemd)
 
 1. Loyihani `/opt/kpgen-proxy`ga nusxalang, venv yarating, `pip install -r requirements.txt`.
