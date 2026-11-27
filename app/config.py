@@ -112,3 +112,8 @@ TAVSIYA_TIMEOUT_RASM = float(os.environ.get("KPGEN_TAVSIYA_TIMEOUT_RASM", "50"))
 # ≤ 25 % i (150 dpi'da A0 varaqdan ≈ 1754 px); Anthropic kattaroq rasmni o'zi kichraytiradi.
 TAVSIYA_MAX_RASM_BAYT = int(os.environ.get("KPGEN_TAVSIYA_MAX_RASM_BAYT", str(2 * 1024 * 1024)))
 TAVSIYA_MAX_RASM_TOMON = int(os.environ.get("KPGEN_TAVSIYA_MAX_RASM_TOMON", "2000"))
+
+
+# kpgen «Проект вентиляции» (27.11.2026): /loyiha_buyruq — matn bilan buyruq → xona maydonlari o'zgarishlari (TAKLIF).
+BUYRUQ_MODEL_NAME = os.environ.get("KPGEN_BUYRUQ_MODEL", "claude-sonnet-5")
+BUYRUQ_TIMEOUT = float(os.environ.get("KPGEN_BUYRUQ_TIMEOUT", "45"))   # kpgen klienti timeout'idan (60 s) kichik
