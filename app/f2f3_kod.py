@@ -82,7 +82,7 @@ def _json_ol(xom: str):
 
 
 def _javoblarni_tekshir(data, idlar: set[str]) -> list[dict]:
-    """id so'rovdagi id; kod — null yoki satr; sabab — satr ≤ 240. Noto'g'ri element TASHLANADI (takror id — birinchisi).
+    """id so'rovdagi id; kod — null yoki satr; sabab — satr (240 belgigacha KESILADI, element saqlanadi). Noto'g'ri element TASHLANADI (takror id — birinchisi).
     Kodni nomzodlarga qarshi tekshirish — kpgen tomonida (faqat u qaror qiladi)."""
     if not isinstance(data, dict) or not isinstance(data.get("javoblar"), list):
         raise ValueError("«javoblar» ro'yxati yo'q")
@@ -95,10 +95,11 @@ def _javoblarni_tekshir(data, idlar: set[str]) -> list[dict]:
             continue
         if kod is not None and not isinstance(kod, str):
             continue
-        if not isinstance(sabab, str) or len(sabab) > SABAB_MAX:
+        if not isinstance(sabab, str):
             continue
         korilgan.add(id_)
-        chiqish.append({"id": id_, "kod": kod, "sabab": sabab})
+        # uzun izoh uchun to'g'ri kod yo'qolmasin: sabab 240 belgigacha KESILADI (kpgen klienti ham shunday)
+        chiqish.append({"id": id_, "kod": kod, "sabab": sabab[:SABAB_MAX]})
     return chiqish
 
 

@@ -119,7 +119,6 @@ def test_json_kod_bloki_bilan_ham_otadi_va_notogri_element_tashlanadi(monkeypatc
         {"id": "37.0", "kod": "E20-2-5", "sabab": "ok"},
         {"id": "999", "kod": "E20-2-5", "sabab": "so'rovda bunday id yo'q"},
         {"id": "38.0", "kod": 5, "sabab": "kod son — noto'g'ri"},
-        {"id": "38.0", "kod": None, "sabab": "x" * 241},          # sabab > 240 — tashlanadi
         {"id": "38.0", "kod": None, "sabab": None},              # sabab satr emas
         "axlat",
         {"id": "38.0", "kod": None, "sabab": "нормы нет"},
@@ -129,6 +128,18 @@ def test_json_kod_bloki_bilan_ham_otadi_va_notogri_element_tashlanadi(monkeypatc
     assert r.status_code == 200, r.text
     assert r.json()["javoblar"] == [{"id": "37.0", "kod": "E20-2-5", "sabab": "ok"},
                                     {"id": "38.0", "kod": None, "sabab": "нормы нет"}]
+
+
+def test_uzun_sabab_kesiladi_kod_saqlanadi(monkeypatch):
+    uzun = "я" * 500
+    _sdk(monkeypatch, javob={"javoblar": [{"id": "37.0", "kod": "E20-2-5", "sabab": uzun},
+                                          {"id": "38.0", "kod": None, "sabab": "x" * 241}]})
+    r = client.post("/f2f3_kod", json=JADVAL)
+    assert r.status_code == 200, r.text
+    j = r.json()["javoblar"]
+    assert [(x["id"], x["kod"]) for x in j] == [("37.0", "E20-2-5"), ("38.0", None)]    # element tashlanmadi
+    assert j[0]["sabab"] == uzun[:240] and len(j[0]["sabab"]) == 240
+    assert len(j[1]["sabab"]) == 240
 
 
 # (4) > 25 qator → 400 (Anthropic chaqirilmaydi)
