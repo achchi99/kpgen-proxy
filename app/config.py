@@ -117,3 +117,13 @@ TAVSIYA_MAX_RASM_TOMON = int(os.environ.get("KPGEN_TAVSIYA_MAX_RASM_TOMON", "200
 # kpgen «Проект вентиляции» (27.11.2026): /loyiha_buyruq — matn bilan buyruq → xona maydonlari o'zgarishlari (TAKLIF).
 BUYRUQ_MODEL_NAME = os.environ.get("KPGEN_BUYRUQ_MODEL", "claude-sonnet-5")
 BUYRUQ_TIMEOUT = float(os.environ.get("KPGEN_BUYRUQ_TIMEOUT", "45"))   # kpgen klienti timeout'idan (60 s) kichik
+
+
+# kpgen Ф-2/Ф-3 (27.11.2026): /f2f3_kod — КП qatoriga норма kodi TAKLIFI (klient `kpgen/ai/f2f3_kod.py`).
+# So'rovdagi `model` faqat shu ro'yxatdan (boshqasi — 400): mijoz o'zboshimcha qimmat model tanlay olmasin.
+F2F3_KOD_MODEL_NAME = os.environ.get("KPGEN_F2F3_KOD_MODEL", "claude-haiku-4-5")   # sukut (so'rovda model yo'q bo'lsa)
+F2F3_KOD_RUXSAT_MODELLAR = frozenset(
+    m.strip() for m in os.environ.get("KPGEN_F2F3_KOD_MODELLAR", "claude-haiku-4-5,claude-sonnet-5").split(",") if m.strip()
+) | {F2F3_KOD_MODEL_NAME}
+F2F3_KOD_MAX_TOKENS = 4096
+F2F3_KOD_TIMEOUT = float(os.environ.get("KPGEN_F2F3_KOD_TIMEOUT", "80"))   # kpgen klienti timeout'idan (90 s) kichik
