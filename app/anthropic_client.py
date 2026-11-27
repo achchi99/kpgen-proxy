@@ -209,6 +209,27 @@ def ask_claude_tool(
     raise ProxyError("Anthropic API javobida tool-chaqiruv topilmadi", status_code=502)
 
 
+def ask_claude_matn(
+    *, model: str, system: str, content: list[dict], max_tokens: int, timeout: float
+) -> tuple[str, dict | None]:
+    """/f2f3_kod: oddiy matn javobi (JSON-matn — tekshirish chaqiruvchida). `content` bloklarida `cache_control`
+    bo'lishi mumkin (prompt caching). → (xom matn, usage dict | None). usage javobning o'zidan (global `LAST_USAGE`
+    emas — parallel so'rovlar bir-birining narxini olmasin). Qayta urinish YO'Q (vaqt chegarasi aniq bo'lsin)."""
+    response = _javob_ol(
+        dict(model=model, max_tokens=max_tokens, system=system, messages=[{"role": "user", "content": content}]),
+        max_tokens=max_tokens,
+        timeout=timeout,
+        max_retries=0,
+    )
+    usage = getattr(response, "usage", None)
+    usage_d = usage_dict(model, usage) if usage is not None else None
+    for block in response.content:
+        text = getattr(block, "text", None)
+        if text is not None:
+            return text.strip(), usage_d
+    raise ProxyError("Anthropic API javobida matn-blok topilmadi", status_code=502)
+
+
 def ask_claude(prompt: str, *, max_tokens: int = 100) -> str:
     """`prompt`ni Anthropic API'ga (MODEL_NAME, matn) yuboradi, javobni qaytaradi."""
     return _call_anthropic(

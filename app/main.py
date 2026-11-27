@@ -17,7 +17,7 @@ from fastapi.responses import JSONResponse
 from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel, Field, ValidationError
 
-from app import anthropic_client, config, kunlik_xarajat, loyiha_buyruq, loyiha_tavsiya
+from app import anthropic_client, config, f2f3_kod, kunlik_xarajat, loyiha_buyruq, loyiha_tavsiya
 from app.anthropic_client import ProxyError, ask_claude, ask_claude_dwg_spec, ask_claude_read_spec, ask_claude_vision
 
 # Faza-68-topshiriq (mijoz, 2026-09-11, "biz ko'r holda ishlayapmiz"):
@@ -64,6 +64,8 @@ def _require_api_key(x_kpgen_api_key: str | None = Header(default=None)) -> None
 app.include_router(loyiha_tavsiya.router, dependencies=[Depends(_require_api_key)])
 # kpgen matn bilan buyruq (27.11.2026)
 app.include_router(loyiha_buyruq.router, dependencies=[Depends(_require_api_key)])
+# kpgen Ф-2/Ф-3: AI norma kodi taklifi (27.11.2026)
+app.include_router(f2f3_kod.router, dependencies=[Depends(_require_api_key)])
 
 
 _NUMBER_RE = re.compile(r"^\d+([.,]\d+)?$")
